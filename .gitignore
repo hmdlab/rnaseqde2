@@ -5,10 +5,10 @@
 # tmporary files
 /tmp
 
-# Excepted dotfiles 
+# Excepted dotfiles
 .*
 !.gitignore
-!.bashrc_env
+!.gitkeep
 
 ### OSX ###
 .DS_Store
