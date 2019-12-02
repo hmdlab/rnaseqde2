@@ -1,6 +1,5 @@
 ## User defined ##
-# test dataset
-/tests/dataset
+# /tests/datasets
 
 # tmporary files
 /tmp
