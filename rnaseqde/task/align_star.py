@@ -23,6 +23,7 @@ logger = getLogger(__name__)
 
 class AlignStarTask(CommandLineTask):
     instances = []
+    in_array = True
     script = utils.actpath_to_sympath(__file__)
 
     @property

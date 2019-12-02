@@ -16,7 +16,8 @@ logger = getLogger(__name__)
 class Task(metaclass=ABCMeta):
     instances = []
     dry_run = False
-    in_array = False
+    in_array = None
+    scripts = None
 
     def __init__(
             self,
@@ -48,6 +49,8 @@ class Task(metaclass=ABCMeta):
                 return cmd
 
             opt = {
+                '-V': True,
+                '-terse': True,
                 '-N': self.task_name,
                 '-hold_jid': self._qsub_hold_job_id
             }
@@ -141,7 +144,6 @@ class Task(metaclass=ABCMeta):
 
 
 class CommandLineTask(Task):
-    resource = 'small'
 
     def __init__(
             self,
