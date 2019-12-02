@@ -2,7 +2,7 @@
 --readNameSeparator: "'|'"
 --limitBAMsortRAM: 48000000000
 --outReadsUnmapped: Fastx
---outSAMtype: "'BAM: SortedByCoordinate'"
+--outSAMtype: "BAM SortedByCoordinate"
 --quantMode: TranscriptomeSAM
 --outSAMattributes: All
 --outSAMstrandField: intronMotif

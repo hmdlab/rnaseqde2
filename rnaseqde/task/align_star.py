@@ -6,6 +6,7 @@
 #$ -o ugelogs/
 #$ -e ugelogs/
 
+import sys
 import os
 import subprocess
 from textwrap import dedent
@@ -28,7 +29,7 @@ class AlignStarTask(CommandLineTask):
 
     @property
     def inputs(self):
-        keys = ['--star-index', '--gtf', '--fastq', '--layout', '--strandness', '--dry-run', '--verbose']
+        keys = ['--star-index', '--gtf', '--fastq', '--layout', '--strandness', '--sample', '--dry-run', '--verbose']
         inputs_ = utils.dictfilter(super().inputs, keys)
         inputs_['--output-dir'] = self.output_dir
 
@@ -38,6 +39,7 @@ class AlignStarTask(CommandLineTask):
                 '--output-dir': '--output-dir',
                 '--layout': '--layout',
                 '--strandness': '--strandness',
+                '--sample': '--sample',
                 '': '--fastq'
                 }
 
@@ -56,9 +58,11 @@ class AlignStarTask(CommandLineTask):
     @property
     def outputs(self):
         if self.inputs['--layout'] == 'sr':
-            fastq = self.inputs['<fastq>']
+            fastq1 = self.inputs['<fastq>']
         else:
-            fastq = self.inputs['<fastq>'][0::2]
+            fastq1 = self.inputs['<fastq>'][0::2]
+
+        samples = self.inputs['--sample'].split(',') if self.inputs['--sample'] else fastq1
 
         dict_ = super().inputs
 
@@ -69,7 +73,7 @@ class AlignStarTask(CommandLineTask):
         }
 
         for k, v in binding.items():
-            dict_[k] = [os.path.join(self.output_prefix(f), v) for f in fastq]
+            dict_[k] = [os.path.join(self.output_prefix(s, self.inputs['--output-dir']), v) for s in samples]
 
         return dict_
 
@@ -95,7 +99,7 @@ def main():
         --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>  : Output directory [default: .]
         --sample <STR>       : (Comma delimited) sample(s)
-        --conf <PATH>        : Configure file
+        --conf <PATH>        : Configuration file
         --dry-run            : Dry-run [default: False]
         --verbose            : Verbose [default: False]
         <fastq>...           : (Ordered) FASTQ file(s)
@@ -103,6 +107,7 @@ def main():
 
     task = AlignStarTask()
     opt_runtime = docopt(dedent(main.__doc__))
+
     opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
 
     if opt_runtime['--layout'] == 'sr':
@@ -114,8 +119,9 @@ def main():
         fastq2 = utils.scattered(opt_runtime['<fastq>'][1::2])
 
     samples = opt_runtime['--sample'].split(',') if opt_runtime['--sample'] else fastq1
+
     if len(samples) != len(fastq1):
-        raise('Invalid sample argument specified.')
+        raise Exception('Invalid sample argument specified.')
 
     binding = {
         '--genomeDir': '--index',
@@ -134,10 +140,13 @@ def main():
             base='STAR',
             opt=utils.optdict_to_str(opt)
         )
-        logger.debug(cmd)
+
+        sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            subprocess.run(cmd, shell=True)
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            with open(os.path.join(opt['--outFileNamePrefix'], 'stderr.log'), 'w') as f:
+                f.write(proc.stderr.decode())
 
 
 if __name__ == '__main__':

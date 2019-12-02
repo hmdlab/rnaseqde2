@@ -10,7 +10,7 @@ import os
 import re
 import glob
 from pathlib import Path
-import copy
+from copy import deepcopy
 import itertools
 from typing import List
 from collections import OrderedDict
@@ -53,7 +53,7 @@ def load_conf(relpath):
 
 
 def dictbind(src, dist, binding):
-    dict_ = OrderedDict(copy.deepcopy(src))
+    dict_ = OrderedDict(deepcopy(src))
     for k, v in binding.items():
         dict_[k] = dist[v]
 
@@ -68,8 +68,12 @@ def dictfilter(src: dict, keys):
     return(dict_)
 
 
-def optdict_to_str(dict_, delimitter=' ', expand_list=False):
+def optdict_to_str(dict_, delimitter=' ', last_delimitter=' ', expand_list=False):
     list_ = []
+
+    if last_delimitter:
+        last_key = list(dict_.keys())[-1]
+
     for k, v in dict_.items():
         if v is None:
             continue
@@ -98,6 +102,10 @@ def optdict_to_str(dict_, delimitter=' ', expand_list=False):
             else:
                 if k != '':
                     list_.append(k)
+
+                if k == last_key:
+                    delimitter = last_delimitter
+
                 list_.append(delimitter.join(v))
                 continue
 
@@ -106,7 +114,7 @@ def optdict_to_str(dict_, delimitter=' ', expand_list=False):
 
 
 # TBD: Move to rnaseqde.task.base
-def scattered(iter: list):
+def scattered(inputs: list):
     try:
         sge_task_id = os.environ.get('SGE_TASK_ID', None)
         sge_task_id = int(sge_task_id)
@@ -114,9 +122,9 @@ def scattered(iter: list):
         pass
     except TypeError:
         logger.info("Run on local.\n")
-        return iter
+        return inputs
     else:
-        return iter[~-sge_task_id]
+        return [inputs[~-sge_task_id]]
 
 
 def stripped(key):

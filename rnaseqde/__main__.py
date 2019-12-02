@@ -74,7 +74,11 @@ def _opt_validated(opt):
 
 def main():
     opt = _opt_validated(docopt(__doc__))
-    opt.update(SampleSheetManager(opt['<sample_sheet>']).to_dict())
+    opt.update(
+        SampleSheetManager(
+            opt['<sample_sheet>'],
+            (opt['--layout'] == 'pe')).to_dict()
+        )
 
     Task.dry_run = opt['--dry-run']
 

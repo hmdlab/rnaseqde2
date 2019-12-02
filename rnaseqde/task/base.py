@@ -73,7 +73,7 @@ class Task(metaclass=ABCMeta):
         logger.debug("Command: {}".format(cmd))
 
         if not self.__class__.dry_run:
-            proc = subprocess.run(cmd, shell=True)
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         if not self.__class__.dry_run and os.environ.get('SGE_TASK_ID', None):
             self.job_id = proc.stdout
@@ -159,7 +159,7 @@ class CommandLineTask(Task):
 
         self.submit_query(
             script=self.__class__.script,
-            opt_script=utils.optdict_to_str(self.inputs)
+            opt_script=utils.optdict_to_str(self.inputs, delimitter=',', last_delimitter=' ')
             )
 
     @property

@@ -30,7 +30,6 @@ class SampleSheetManager:
         self._validate()
 
     def _validate(self):
-        # does contain fields required?
         fields = self._dict.keys()
         fields_required = ['sample', 'group', 'fastq1']
         if self._is_paired:
@@ -41,15 +40,13 @@ class SampleSheetManager:
                 raise Exception
                 sys.exit(1)
 
-        # is sample unique?
         samples = self.samples
         if len(samples) != len(set(samples)):
             sys.stderr.write('samples are not unique.')
             raise Exception
             sys.exit(1)
 
-        # does exist read files?
-        read_files = self.ordered_read_files()
+        read_files = self._ordered_fastqs()
         for file in read_files:
             if not os.path.exists(file):
                 raise Exception("read file: {} does not exists.".format(file))
@@ -63,7 +60,7 @@ class SampleSheetManager:
     def groups(self):
         return self._dict['group']
 
-    def ordered_read_files(self, tupled=False):
+    def _ordered_fastqs(self, tupled=False):
         fastq1s = self._dict['fastq1']
         if not self._is_paired:
             return fastq1s
@@ -85,7 +82,7 @@ class SampleSheetManager:
 
     @property
     def fastqs(self):
-        return self.ordered_read_files()
+        return self._ordered_fastqs()
 
     @property
     def fastq_paired(self):
