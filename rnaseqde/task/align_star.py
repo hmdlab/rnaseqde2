@@ -37,7 +37,7 @@ class AlignStarTask(CommandLineTask):
                 '--layout': '--layout',
                 '--strandness': '--strandness',
                 '--sample': '--sample',
-                '': '--fastq'
+                '<fastq>': '--fastq'
                 }
 
         inputs_ = utils.dictbind(inputs_, super().inputs, binding)
@@ -57,11 +57,11 @@ class AlignStarTask(CommandLineTask):
     @property
     def outputs(self):
         if self.inputs['--layout'] == 'sr':
-            fastq1 = self.inputs['<fastq>']
+            fastq1s = self.inputs['<fastq>']
         else:
-            fastq1 = self.inputs['<fastq>'][0::2]
+            fastq1s = self.inputs['<fastq>'][0::2]
 
-        samples = self.inputs['--sample'].split(',') if self.inputs['--sample'] else fastq1
+        samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
 
         dict_ = super().inputs
 
@@ -72,7 +72,7 @@ class AlignStarTask(CommandLineTask):
         }
 
         for k, v in binding.items():
-            dict_[k] = [os.path.join(self.output_prefix(s, self.inputs['--output-dir']), v) for s in samples]
+            dict_[k] = [os.path.join(self.output_prefix(s), v) for s in samples]
 
         return dict_
 
@@ -147,7 +147,7 @@ def main():
 
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['--readFilesIn'] = ' '.join((f1, f2)).strip()
-        opt['--outFileNamePrefix'] = task.output_prefix(s, opt_runtime['--output-dir'])
+        opt['--outFileNamePrefix'] = task.output_prefix(s)
 
         cmd = "{base} {opt}".format(
             base='STAR',
@@ -158,10 +158,10 @@ def main():
 
         if not opt_runtime['--dry-run']:
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(opt['--outFileNamePrefix'], 'stderr.log'), 'w') as f:
+            with open(os.path.join(task.output_prefix(s), 'stderr.log'), 'w') as f:
                 f.write(proc.stderr.decode())
 
-            with open(os.path.join(opt['--outFileNamePrefix'], 'stdout.log'), 'w') as f:
+            with open(os.path.join(task.output_prefix(s), 'stdout.log'), 'w') as f:
                 f.write(proc.stdout.decode())
 
 

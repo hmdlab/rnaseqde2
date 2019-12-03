@@ -39,6 +39,7 @@ import rnaseqde.utils as utils
 from rnaseqde.sample_sheet_manager import SampleSheetManager
 from rnaseqde.task.base import Task, DictWrapperTask
 from rnaseqde.task.align_star import AlignStarTask
+from rnaseqde.task.quant_rsem import QuantRsemTask
 
 from logging import (
     getLogger,
@@ -93,6 +94,15 @@ def main():
         opt_.update(v)
         beginning = DictWrapperTask(opt_, k)
         AlignStarTask([beginning])
+
+    align_tasks = [AlignStarTask]
+
+    for at in align_tasks:
+        for t in at.instances:
+            pass
+
+    for t in AlignStarTask.instances:
+        QuantRsemTask([t])
 
     Task.run_all_tasks()
 
