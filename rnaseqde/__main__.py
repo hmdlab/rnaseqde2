@@ -25,6 +25,7 @@ Supported annotations:
     gencode_basic
     gencode_refeseq
     refeseq
+
 """
 
 import sys

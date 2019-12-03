@@ -81,8 +81,14 @@ def optdict_to_str(dict_, delimitter=' ', last_delimitter=' ', expand_list=False
         if type(v) is str:
             if k != '':
                 list_.append(k)
-            list_.append(v)
-            continue
+                list_.append(v)
+                continue
+
+        if type(v) is int or type(v) is float:
+            if k != '':
+                list_.append(k)
+                list_.append(str(v))
+                continue
 
         if type(v) is bool:
             if v:

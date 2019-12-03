@@ -29,29 +29,28 @@ class AlignStarTask(CommandLineTask):
 
     @property
     def inputs(self):
-        keys = ['--star-index', '--gtf', '--fastq', '--layout', '--strandness', '--sample', '--dry-run', '--verbose']
-        inputs_ = utils.dictfilter(super().inputs, keys)
-        inputs_['--output-dir'] = self.output_dir
+        inputs_ = {'--output-dir': self.output_dir}
 
         binding = {
                 '--index': '--star-index',
                 '--gtf': '--gtf',
-                '--output-dir': '--output-dir',
                 '--layout': '--layout',
                 '--strandness': '--strandness',
                 '--sample': '--sample',
                 '': '--fastq'
                 }
 
-        inputs_ = utils.dictbind({}, inputs_, binding)
+        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
 
         return inputs_
 
-    def output_prefix(self, input, base_dir):
+    def output_prefix(self, input):
         prefix_ = os.path.join(
-            base_dir,
-            utils.basename_replaced_ext('.fastq.gz', '', input),
-            '')
+            self.output_dir,
+            utils.basename_replaced_ext('.fastq.gz', '', input)
+            )
+
+        os.makedirs(prefix_, exist_ok=True)
 
         return prefix_
 
@@ -103,25 +102,41 @@ def main():
         --dry-run            : Dry-run [default: False]
         --verbose            : Verbose [default: False]
         <fastq>...           : (Ordered) FASTQ file(s)
+
+    Example:
+        STAR \\
+            --readFilesCommand zcat --readNameSeparator '|' \\
+            --outReadsUnmapped Fastx --outSAMtype BAM SortedByCoordinate \\
+            --quantMode TranscriptomeSAM --outSAMattributes All \\
+            --outSAMstrandField intronMotif --outSAMheaderHD '@HD: VN:1.4: SO:coordinate' \\
+            --alignEndsType Local --outFilterType BySJout \\
+            --genomeDir ${index}  --sjdbGTFfile ${gtf} \\
+            --readFilesIn ${fastq1} ${fastq1} \\
+            --outFileNamePrefix ${sample}
+
     """
 
     task = AlignStarTask()
     opt_runtime = docopt(dedent(main.__doc__))
-
     opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
 
+    task.output_dir = opt_runtime['--output-dir']
+
     if opt_runtime['--layout'] == 'sr':
-        fastq1 = utils.scattered(opt_runtime['<fastq>'])
-        fastq2 = [''] * len(opt_runtime['<fastq>'])
+        fastq1s = utils.scattered(opt_runtime['<fastq>'])
+        fastq2s = [''] * len(opt_runtime['<fastq>'])
 
     if opt_runtime['--layout'] == 'pe':
-        fastq1 = utils.scattered(opt_runtime['<fastq>'][0::2])
-        fastq2 = utils.scattered(opt_runtime['<fastq>'][1::2])
+        fastq1s = utils.scattered(opt_runtime['<fastq>'][0::2])
+        fastq2s = utils.scattered(opt_runtime['<fastq>'][1::2])
 
-    samples = opt_runtime['--sample'].split(',') if opt_runtime['--sample'] else fastq1
+    if opt_runtime['--sample']:
+        samples = utils.scattered(opt_runtime['--sample'].split(','))
+    else:
+        samples = fastq1s
 
-    if len(samples) != len(fastq1):
-        raise Exception('Invalid sample argument specified.')
+    if len(samples) != len(fastq1s):
+        raise Exception('Invalid sample argument specified')
 
     binding = {
         '--genomeDir': '--index',
@@ -130,11 +145,9 @@ def main():
 
     opt = utils.dictbind(opt_static, opt_runtime, binding)
 
-    for i, (f1, f2, s) in enumerate(zip(fastq1, fastq2, samples)):
+    for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['--readFilesIn'] = ' '.join((f1, f2)).strip()
         opt['--outFileNamePrefix'] = task.output_prefix(s, opt_runtime['--output-dir'])
-
-        os.makedirs(opt['--outFileNamePrefix'], exist_ok=True)
 
         cmd = "{base} {opt}".format(
             base='STAR',
@@ -147,6 +160,9 @@ def main():
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             with open(os.path.join(opt['--outFileNamePrefix'], 'stderr.log'), 'w') as f:
                 f.write(proc.stderr.decode())
+
+            with open(os.path.join(opt['--outFileNamePrefix'], 'stdout.log'), 'w') as f:
+                f.write(proc.stdout.decode())
 
 
 if __name__ == '__main__':
