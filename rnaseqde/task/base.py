@@ -151,7 +151,7 @@ class CommandLineTask(Task):
             **kwargs):
 
         super().__init__(required_tasks=required_tasks)
-        self.conf = utils.load_conf("config/task/{}.yml".format(self.task_name))
+        self.conf = utils.load_conf("config/task/{}.yml".format(self.task_name), strict=False)
 
     def run(self):
         super().run()

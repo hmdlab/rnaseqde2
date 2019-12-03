@@ -37,7 +37,9 @@ class AlignStarTask(CommandLineTask):
                 '--layout': '--layout',
                 '--strandness': '--strandness',
                 '--sample': '--sample',
-                '<fastq>': '--fastq'
+                '--dry-run': '--dry-run',
+                '--verbose': '--verbose',
+                '': '--fastq'
                 }
 
         inputs_ = utils.dictbind(inputs_, super().inputs, binding)
@@ -47,7 +49,8 @@ class AlignStarTask(CommandLineTask):
     def output_prefix(self, input):
         prefix_ = os.path.join(
             self.output_dir,
-            utils.basename_replaced_ext('.fastq.gz', '', input)
+            utils.basename_replaced_ext('.fastq.gz', '', input),
+            ''
             )
 
         os.makedirs(prefix_, exist_ok=True)
@@ -57,9 +60,9 @@ class AlignStarTask(CommandLineTask):
     @property
     def outputs(self):
         if self.inputs['--layout'] == 'sr':
-            fastq1s = self.inputs['<fastq>']
+            fastq1s = self.inputs['']
         else:
-            fastq1s = self.inputs['<fastq>'][0::2]
+            fastq1s = self.inputs[''][0::2]
 
         samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
 

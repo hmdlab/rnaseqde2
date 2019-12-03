@@ -35,6 +35,8 @@ class QuantRsemTask(CommandLineTask):
                 '--index': '--rsem-index',
                 '--layout': '--layout',
                 '--strandness': '--strandness',
+                '--dry-run': '--dry-run',
+                '--verbose': '--verbose',
                 '': '--transcript-bam'
                 }
 
@@ -58,13 +60,20 @@ class QuantRsemTask(CommandLineTask):
 
     @property
     def outputs(self):
-        gene_tsv = [self.output(input) + '.genes.results' for input in self.inputs[self.iter_keys[0]]]
-        transcript_tsv = [self.output(input) + '.isoforms.results' for input in self.inputs[self.iter_keys[0]]]
-        stats = [self.output(input) + '.stats' for input in self.inputs[self.iter_keys[0]]]
-        gtf = self.upper().outputs['gtf']
-        sqlite = self.upper().outputs['sqlite']
+        bams = self.inputs['']
 
-        return utils.pack_vars(locals())
+        binding = {
+            '--gene-tsv': '.genes.results',
+            '--transcript-tsv': '.isoforms.results',
+            '--stats': '.stats'
+        }
+
+        dict_ = super.inputs
+
+        for k, v in binding.items():
+            dict_[k] = [self.output_prefix(s) + v for s in bams]
+
+        return dict_
 
 
 def main():

@@ -46,10 +46,17 @@ def actpath_to_sympath(abspath_actual):
     return sympath_
 
 
-def load_conf(relpath):
-    with open(from_root(relpath)) as f:
-        dict_yaml = yaml.load(f)
-    return dict_yaml
+def load_conf(relpath, strict=True):
+    try:
+        with open(from_root(relpath)) as f:
+            dict_ = yaml.load(f)
+    except FileNotFoundError as e:
+        if strict:
+            logger.exception(e)
+            sys.exit()
+
+        dict_ = {}
+    return dict_
 
 
 def dictbind(src, dist, binding):
