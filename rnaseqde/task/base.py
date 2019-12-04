@@ -1,3 +1,10 @@
+"""
+rnaseqde.task.base
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This module define base task class
+"""
+
 import sys
 import os
 import re
@@ -62,7 +69,7 @@ class Task(metaclass=ABCMeta):
 
             cmd = "{base} {opt} {script} {opt_script}".format(
                 base='qsub',
-                opt=utils.optdict_to_str(opt, expand_list=True),
+                opt=utils.optdict_to_str(opt),
                 script=script,
                 opt_script=opt_script
                 )
@@ -159,7 +166,7 @@ class CommandLineTask(Task):
 
         self.submit_query(
             script=self.__class__.script,
-            opt_script=utils.optdict_to_str(self.inputs, delimitter=',', last_delimitter=' ')
+            opt_script=utils.optdict_to_str(self.inputs)
             )
 
     @property

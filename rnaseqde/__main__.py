@@ -12,7 +12,6 @@ Options:
     --reference NAME              : Reference name [default: grch38]
     --annotation NAME             : Annotation name (in the case using only one annotation)
     --dry-run                     : Dry-run [default: False]
-    --verbose                     : Verbose [default: False]
     <sample_sheet>                : Tab-delimited text that contained the following columns:
                                     sample; fastq1[fastq2]; group
 
@@ -40,6 +39,7 @@ from rnaseqde.sample_sheet_manager import SampleSheetManager
 from rnaseqde.task.base import Task, DictWrapperTask
 from rnaseqde.task.align_star import AlignStarTask
 from rnaseqde.task.quant_rsem import QuantRsemTask
+from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
 
 from logging import (
     getLogger,
@@ -62,7 +62,6 @@ def _opt_validated(opt):
         '--reference': Or(None, str),
         '--annotation': Or(None, str),
         '--dry-run': bool,
-        '--verbose': bool,
         '<sample_sheet>': str
     })
 
@@ -103,6 +102,15 @@ def main():
 
     for t in AlignStarTask.instances:
         QuantRsemTask([t])
+
+    for t in QuantRsemTask.instances:
+        ConvRsemToEbseqMatrixTask([t])
+
+    quant_tasks = [ConvRsemToEbseqMatrixTask]
+
+    for at in quant_tasks:
+        for t in at.instances:
+            pass
 
     Task.run_all_tasks()
 

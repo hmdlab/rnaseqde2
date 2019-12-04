@@ -1,8 +1,8 @@
 """
-rnaseqde.option_manager
+rnaseqde.sample_sheet_manager
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-This module manage command line options.
+This module provide sample sheet utilities
 """
 
 import sys
@@ -14,7 +14,7 @@ from collections import defaultdict
 import inflection
 
 
-logger = logging.getLogger('__main__')
+logger = logging.getLogger(__name__)
 
 
 class SampleSheetManager:

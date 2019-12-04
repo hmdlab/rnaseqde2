@@ -11,8 +11,6 @@ import os
 import subprocess
 from textwrap import dedent
 
-from docopt import docopt
-
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
@@ -38,8 +36,7 @@ class AlignStarTask(CommandLineTask):
                 '--strandness': '--strandness',
                 '--sample': '--sample',
                 '--dry-run': '--dry-run',
-                '--verbose': '--verbose',
-                '': '--fastq'
+                '--fastq': '--fastq'
                 }
 
         inputs_ = utils.dictbind(inputs_, super().inputs, binding)
@@ -60,9 +57,9 @@ class AlignStarTask(CommandLineTask):
     @property
     def outputs(self):
         if self.inputs['--layout'] == 'sr':
-            fastq1s = self.inputs['']
+            fastq1s = self.inputs['--fastq']
         else:
-            fastq1s = self.inputs[''][0::2]
+            fastq1s = self.inputs['--fastq'][0::2]
 
         samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
 
@@ -83,7 +80,7 @@ class AlignStarTask(CommandLineTask):
     # TBD: Should implement on the super class or not
     def qsub_threads(self):
         d = 1 if self.inputs['--layout'] == 'sr' else 2
-        n_tasks = len(next(reversed(self.inputs.values()))) / d
+        n_tasks = len(self.inputs['--fastq']) / d
         return self._qsub_threads(n_tasks)
 
 
@@ -92,54 +89,45 @@ def main():
     Wrapper for UGE: Align reads to the reference genome using STAR
 
     Usage:
-        align_star [options] <fastq>...
+        align_star [options] --index <PATH> --gtf <PATH> --fastq <PATH>... [--sample <STR>...]
 
     Options:
         --index <PATH>       : Reference index file
         --gtf <PATH>         : GTF annotation file
+        --fastq <PATH>...    : (Ordered) FASTQ file(s)
         --layout <TYPE>      : Library layout (sr/pe) [default: sr]
         --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>  : Output directory [default: .]
-        --sample <STR>       : (Comma delimited) sample(s)
+        --sample <STR>...    : (Comma delimited) sample(s)
         --conf <PATH>        : Configuration file
         --dry-run            : Dry-run [default: False]
-        --verbose            : Verbose [default: False]
-        <fastq>...           : (Ordered) FASTQ file(s)
-
-    Example:
-        STAR \\
-            --readFilesCommand zcat --readNameSeparator '|' \\
-            --outReadsUnmapped Fastx --outSAMtype BAM SortedByCoordinate \\
-            --quantMode TranscriptomeSAM --outSAMattributes All \\
-            --outSAMstrandField intronMotif --outSAMheaderHD '@HD: VN:1.4: SO:coordinate' \\
-            --alignEndsType Local --outFilterType BySJout \\
-            --genomeDir ${index}  --sjdbGTFfile ${gtf} \\
-            --readFilesIn ${fastq1} ${fastq1} \\
-            --outFileNamePrefix ${sample}
 
     """
 
     task = AlignStarTask()
-    opt_runtime = docopt(dedent(main.__doc__))
+
+    opt_runtime = utils.docmopt(dedent(main.__doc__))
     opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
 
     task.output_dir = opt_runtime['--output-dir']
 
     if opt_runtime['--layout'] == 'sr':
-        fastq1s = utils.scattered(opt_runtime['<fastq>'])
-        fastq2s = [''] * len(opt_runtime['<fastq>'])
+        fastq1s = utils.scattered(opt_runtime['--fastq'])
+        fastq2s = [''] * len(opt_runtime['--fastq'])
 
     if opt_runtime['--layout'] == 'pe':
-        fastq1s = utils.scattered(opt_runtime['<fastq>'][0::2])
-        fastq2s = utils.scattered(opt_runtime['<fastq>'][1::2])
+        fastq1s = utils.scattered(opt_runtime['--fastq'][0::2])
+        fastq2s = utils.scattered(opt_runtime['--fastq'][1::2])
 
     if opt_runtime['--sample']:
-        samples = utils.scattered(opt_runtime['--sample'].split(','))
+        samples = utils.scattered(opt_runtime['--sample'])
     else:
         samples = fastq1s
 
     if len(samples) != len(fastq1s):
-        raise Exception('Invalid sample argument specified')
+        raise Exception(
+            "Invalid sample argument specified {} vs {}".format(len(samples), len(fastq1s))
+        )
 
     binding = {
         '--genomeDir': '--index',

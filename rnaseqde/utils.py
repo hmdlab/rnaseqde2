@@ -14,6 +14,7 @@ from copy import deepcopy
 import itertools
 from typing import List
 from collections import OrderedDict
+from docopt import docopt
 
 import yaml
 
@@ -59,6 +60,28 @@ def load_conf(relpath, strict=True):
     return dict_
 
 
+def docmopt(doc, **kwargs):
+    def tidyargv(argv: list, prefix='--'):
+        list_ = []
+        for v in argv:
+            if v.startswith(prefix):
+                p = v
+                continue
+
+            list_.append(p)
+            list_.append(v)
+        return list_
+
+    kwargs.update({
+            'argv': tidyargv(sys.argv[1:]),
+            'options_first': True
+        })
+
+    logger.debug(kwargs['argv'])
+
+    return docopt(doc, **kwargs)
+
+
 def dictbind(src, dist, binding):
     dict_ = OrderedDict(deepcopy(src))
     for k, v in binding.items():
@@ -75,55 +98,88 @@ def dictfilter(src: dict, keys):
     return(dict_)
 
 
-def optdict_to_str(dict_, delimitter=' ', last_delimitter=' ', expand_list=False):
+def optdict_to_str(dict_, delimiter=' ', tidy=False):
     list_ = []
-
-    if last_delimitter:
-        last_key = list(dict_.keys())[-1]
 
     for k, v in dict_.items():
         if v is None:
             continue
 
-        if type(v) is str:
-            if k != '':
-                list_.append(k)
-                list_.append(v)
+        if type(v) is list:
+            if tidy:
+                for v_ in v:
+                    list_.append(k)
+                    list_.append(v_)
                 continue
-
-        if type(v) is int or type(v) is float:
-            if k != '':
+            else:
                 list_.append(k)
-                list_.append(str(v))
+                list_.append(delimiter.join(v))
                 continue
 
         if type(v) is bool:
             if v:
-                if k != '':
-                    list_.append(k)
+                list_.append(k)
                 continue
             else:
                 continue
 
-        if type(v) is list:
-            if expand_list:
-                for v_ in v:
-                    if k != '':
-                        list_.append(k)
-                    list_.append(v_)
-                continue
-            else:
-                if k != '':
-                    list_.append(k)
+        list_.append(k)
+        list_.append(str(v))
+        continue
 
-                if k == last_key:
-                    delimitter = last_delimitter
-
-                list_.append(delimitter.join(v))
-                continue
-
-    str_ = ' '.join(list_)
+    str_ = delimiter.join(list_)
     return str_
+
+
+# def optdict_to_str(dict_, delimitter=' ', last_delimitter=' ', expand_list=False):
+#     list_ = []
+
+#     if last_delimitter:
+#         last_key = list(dict_.keys())[-1]
+
+#     for k, v in dict_.items():
+#         if v is None:
+#             continue
+
+#         if type(v) is str:
+#             if k != '':
+#                 list_.append(k)
+#                 list_.append(v)
+#                 continue
+
+#         if type(v) is int or type(v) is float:
+#             if k != '':
+#                 list_.append(k)
+#                 list_.append(str(v))
+#                 continue
+
+#         if type(v) is bool:
+#             if v:
+#                 if k != '':
+#                     list_.append(k)
+#                 continue
+#             else:
+#                 continue
+
+#         if type(v) is list:
+#             if expand_list:
+#                 for v_ in v:
+#                     if k != '':
+#                         list_.append(k)
+#                     list_.append(v_)
+#                 continue
+#             else:
+#                 if k != '':
+#                     list_.append(k)
+
+#                 if k == last_key:
+#                     delimitter = last_delimitter
+
+#                 list_.append(delimitter.join(v))
+#                 continue
+
+#     str_ = ' '.join(list_)
+#     return str_
 
 
 # TBD: Move to rnaseqde.task.base

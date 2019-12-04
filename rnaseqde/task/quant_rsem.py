@@ -11,8 +11,6 @@ import os
 import subprocess
 from textwrap import dedent
 
-from docopt import docopt
-
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
@@ -36,8 +34,7 @@ class QuantRsemTask(CommandLineTask):
                 '--layout': '--layout',
                 '--strandness': '--strandness',
                 '--dry-run': '--dry-run',
-                '--verbose': '--verbose',
-                '': '--transcript-bam'
+                '--transcript-bam': '--transcript-bam'
                 }
 
         inputs_ = utils.dictbind(inputs_, super().inputs, binding)
@@ -60,7 +57,7 @@ class QuantRsemTask(CommandLineTask):
 
     @property
     def outputs(self):
-        bams = self.inputs['']
+        bams = self.inputs['--transcript-bam']
 
         binding = {
             '--gene-tsv': '.genes.results',
@@ -68,7 +65,7 @@ class QuantRsemTask(CommandLineTask):
             '--stats': '.stats'
         }
 
-        dict_ = super.inputs
+        dict_ = super().inputs
 
         for k, v in binding.items():
             dict_[k] = [self.output_prefix(s) + v for s in bams]
@@ -81,17 +78,16 @@ def main():
     Wrapper for UGE: Quantify transcript abundance using RSEM
 
     Usage:
-        quant_rsem [options] <transcript-bam>...
+        quant_rsem [options] --index <PATH> --transcript-bam <PATH>...
 
     Options
-        --index <PATH>       : Reference index file
-        --layout <TYPE>      : Library layout (sr/pe) [default: sr]
-        --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
-        --output-dir <PATH>  : Output directory [default: .]
-        --conf <PATH>        : Configuration file
-        --dry-run            : Dry-run [default: False]
-        --verbose            : Verbose [default: False]
-        <transcript-bam>...  : BAM file mapped to Transcriptome
+        --index <PATH>              : Reference index file
+        --layout <TYPE>             : Library layout (sr/pe) [default: sr]
+        --transcript-bam <PATH>...  : BAM file mapped to Transcriptome
+        --strandness <TYPE>         : Library strandness (none/rf/fr) [default: none]
+        --output-dir <PATH>         : Output directory [default: .]
+        --conf <PATH>               : Configuration file
+        --dry-run                   : Dry-run [default: False]
 
     Example:
         rsem-calculate-expression \\
@@ -105,7 +101,7 @@ def main():
 
     task = QuantRsemTask()
 
-    opt_runtime = docopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(dedent(main.__doc__))
     opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
 
     task.output_dir = opt_runtime['--output-dir']
@@ -127,7 +123,7 @@ def main():
     args = [None] * 3
     args[1] = opt_runtime['--index']
 
-    bams = utils.scattered(opt_runtime['<transcript-bam>'])
+    bams = utils.scattered(opt_runtime['--transcript-bam'])
 
     for b in bams:
         args[0] = b
