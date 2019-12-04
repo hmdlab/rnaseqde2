@@ -151,7 +151,6 @@ class Task(metaclass=ABCMeta):
 
 
 class CommandLineTask(Task):
-
     def __init__(
             self,
             required_tasks=None,
@@ -161,7 +160,6 @@ class CommandLineTask(Task):
         self.conf = utils.load_conf("config/task/{}.yml".format(self.task_name), strict=False)
 
     def run(self):
-        super().run()
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.submit_query(

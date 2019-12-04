@@ -60,7 +60,7 @@ def load_conf(relpath, strict=True):
     return dict_
 
 
-def docmopt(doc, **kwargs):
+def docmopt(doc, *args, **kwargs):
     def tidyargv(argv: list, prefix='--'):
         list_ = []
         for v in argv:
@@ -79,7 +79,7 @@ def docmopt(doc, **kwargs):
 
     logger.debug(kwargs['argv'])
 
-    return docopt(doc, **kwargs)
+    return docopt(doc, *args, **kwargs)
 
 
 def dictbind(src, dist, binding):
@@ -129,57 +129,6 @@ def optdict_to_str(dict_, delimiter=' ', tidy=False):
 
     str_ = delimiter.join(list_)
     return str_
-
-
-# def optdict_to_str(dict_, delimitter=' ', last_delimitter=' ', expand_list=False):
-#     list_ = []
-
-#     if last_delimitter:
-#         last_key = list(dict_.keys())[-1]
-
-#     for k, v in dict_.items():
-#         if v is None:
-#             continue
-
-#         if type(v) is str:
-#             if k != '':
-#                 list_.append(k)
-#                 list_.append(v)
-#                 continue
-
-#         if type(v) is int or type(v) is float:
-#             if k != '':
-#                 list_.append(k)
-#                 list_.append(str(v))
-#                 continue
-
-#         if type(v) is bool:
-#             if v:
-#                 if k != '':
-#                     list_.append(k)
-#                 continue
-#             else:
-#                 continue
-
-#         if type(v) is list:
-#             if expand_list:
-#                 for v_ in v:
-#                     if k != '':
-#                         list_.append(k)
-#                     list_.append(v_)
-#                 continue
-#             else:
-#                 if k != '':
-#                     list_.append(k)
-
-#                 if k == last_key:
-#                     delimitter = last_delimitter
-
-#                 list_.append(delimitter.join(v))
-#                 continue
-
-#     str_ = ' '.join(list_)
-#     return str_
 
 
 # TBD: Move to rnaseqde.task.base
@@ -264,7 +213,6 @@ def flatten(nested_list):
         else:
             list_.append(item)
 
-    print(list_)
     return list_
 
 

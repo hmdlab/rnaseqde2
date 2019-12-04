@@ -41,6 +41,7 @@ from rnaseqde.task.align_star import AlignStarTask
 from rnaseqde.task.quant_rsem import QuantRsemTask
 from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
 from rnaseqde.task.de_ebseq import DeEbseqTask
+from rnaseqde.task.end import EndTask
 
 from logging import (
     getLogger,
@@ -115,6 +116,11 @@ def main():
 
     for t in ConvRsemToEbseqMatrixTask.instances:
         DeEbseqTask([t])
+
+    EndTask(
+        required_tasks=Task.instances,
+        excepted_tasks=[beginning]
+        )
 
     Task.run_all_tasks()
 
