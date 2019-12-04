@@ -40,6 +40,7 @@ from rnaseqde.task.base import Task, DictWrapperTask
 from rnaseqde.task.align_star import AlignStarTask
 from rnaseqde.task.quant_rsem import QuantRsemTask
 from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
+from rnaseqde.task.de_ebseq import DeEbseqTask
 
 from logging import (
     getLogger,
@@ -111,6 +112,9 @@ def main():
     for at in quant_tasks:
         for t in at.instances:
             pass
+
+    for t in ConvRsemToEbseqMatrixTask.instances:
+        DeEbseqTask([t])
 
     Task.run_all_tasks()
 

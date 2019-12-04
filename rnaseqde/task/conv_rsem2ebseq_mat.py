@@ -28,7 +28,7 @@ class ConvRsemToEbseqMatrixTask(CommandLineTask):
         inputs_ = {'--output-dir': self.output_dir}
 
         binding = {
-                '--gene-tsv': '--transcript-tsv',
+                '--gene-tsv': '--gene-tsv',
                 '--transcript-tsv': '--transcript-tsv'
                 }
 
@@ -44,9 +44,11 @@ class ConvRsemToEbseqMatrixTask(CommandLineTask):
 
     @property
     def outputs(self):
-        dict_ = {}
-        for v in ['gene', 'transcript']:
-            dict_[v + '-mat-tsv'] = self.output(v)
+        dict_ = super().inputs
+
+        for u in ['gene', 'transcript']:
+            key_ = "--{}-mat-tsv".format(u)
+            dict_[key_] = self.output(u)
 
         return dict_
 
@@ -75,27 +77,22 @@ def main():
 
     task.output_dir = opt_runtime['--output-dir']
 
-    for u in ['gene', 'transcript']:
-        os.makedirs(task.output_subdir(u), exist_ok=True)
+    for level in ['gene', 'transcript']:
+        os.makedirs(task.output_subdir(level), exist_ok=True)
 
-        key_ = "--{}-tsv".format(u)
+        key_ = "--{}-tsv".format(level)
         args = opt_runtime[key_]
 
         cmd = "{base} {args} >| {output}".format(
             base='rsem-generate-data-matrix',
             args=' '.join(args),
-            output=task.output(u)
+            output=task.output(level)
             )
 
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(task.output_subdir(u), 'stderr.log'), 'w') as f:
-                f.write(proc.stderr.decode())
-
-            with open(os.path.join(task.output_subdir(u), 'stdout.log'), 'w') as f:
-                f.write(proc.stdout.decode())
 
 
 if __name__ == '__main__':
