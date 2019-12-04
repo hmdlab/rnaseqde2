@@ -28,6 +28,7 @@ class ConvRsemToEbseqMatrixTask(CommandLineTask):
         inputs_ = {'--output-dir': self.output_dir}
 
         binding = {
+                '--dry-run': '--dry-run',
                 '--gene-tsv': '--gene-tsv',
                 '--transcript-tsv': '--transcript-tsv'
                 }
@@ -61,10 +62,10 @@ def main():
         conv_rsem2ebseq_mat [options] --gene-tsv <PATH>... --transcript-tsv <PATH>...
 
     Options:
-        --gene-tsv <PATH>...        : Gene-level counts TSV file
-        --transcript-tsv <PATH>...  : Transcript-level counts TSV file
         --output-dir <PATH>         : Output directory [default: .]
         --dry-run                   : Dry-run [default: False]
+        --gene-tsv <PATH>...        : Gene-level counts TSV file
+        --transcript-tsv <PATH>...  : Transcript-level counts TSV file
 
     Example:
         rsem-generate-data-matrix [<rsem-result-tsv>...]

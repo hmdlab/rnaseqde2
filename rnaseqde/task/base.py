@@ -59,12 +59,12 @@ class Task(metaclass=ABCMeta):
                 '-V': True,
                 '-terse': True,
                 '-N': self.task_name,
-                '-hold_jid': self._qsub_hold_job_id
+                '-hold_jid': self._qsub_hold_job_ids
             }
 
             if self.__class__.in_array:
                 opt.update(
-                    {'-t': self.qsub_threads}
+                    {'-t': self._qsub_threads}
                 )
 
             cmd = "{base} {opt} {script} {opt_script}".format(
@@ -109,17 +109,15 @@ class Task(metaclass=ABCMeta):
     def task_name(self):
         return re.sub(r"_task$", '', utils.snake_cased(self.__class__.__name__))
 
-    def _qsub_threads(self, n_tasks, step=1):
+    @property
+    def _qsub_threads(self):
+        # NOTE: Obtain last value from ordered dict
+        n_tasks = len(next(reversed(self.inputs.values())))
+        step = 1
         return "1-{}:{}".format(str(int(n_tasks)), step)
 
     @property
-    def qsub_threads(self):
-        # NOTE: Obtain last value from ordered dict
-        n_tasks = len(next(reversed(self.inputs.values())))
-        return self._qsub_threads(n_tasks)
-
-    @property
-    def _qsub_hold_job_id(self):
+    def _qsub_hold_job_ids(self):
         if self.required_tasks is not None:
             try:
                 job_ids = ','.join(
@@ -189,8 +187,21 @@ class CommandLineTask(Task):
             return self.task_name
 
     @output_dir.setter
-    def output_dir(self, output_dir: str):
+    def output_dir(self, output_dir):
         self._output_dir = output_dir
+
+    @classmethod
+    def scattered(cls, inputs):
+        try:
+            sge_task_id = os.environ.get('SGE_TASK_ID', None)
+            sge_task_id = int(sge_task_id)
+        except ValueError:
+            pass
+        except TypeError:
+            logger.info("Run on local.\n")
+            return inputs
+        else:
+            return [inputs[~-sge_task_id]]
 
 
 class DictWrapperTask(Task):

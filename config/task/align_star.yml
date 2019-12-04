@@ -21,3 +21,4 @@
 --alignSJDBoverhangMin: 3
 --outFilterType: BySJout
 --runThreadN: 4
+--runRNGseed: 777

@@ -10,8 +10,6 @@ import subprocess
 import collections
 from textwrap import dedent
 
-from docopt import docopt
-
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
@@ -44,10 +42,11 @@ class DeEbseqTask(CommandLineTask):
 
     @property
     def outputs(self):
-        for v in ['gene', 'transcript']:
-            locals()[v + '-tsv'] = os.path.join(self.output_dir, v, 'results.tsv')
+        outputs_ = super().inputs
+        for level in ['gene', 'transcript']:
+            outputs_[level + '-tsv'] = os.path.join(self.output_dir, level, 'results.tsv')
 
-        return utils.pack_vars(locals())
+        return outputs_
 
 
 def main():
@@ -113,7 +112,7 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 if __name__ == '__main__':

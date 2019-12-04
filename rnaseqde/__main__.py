@@ -9,11 +9,11 @@ Usage:
 Options:
     --layout <TYPE>      : Library layout (sr/pe) [default: sr]
     --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
-    --reference NAME              : Reference name [default: grch38]
-    --annotation NAME             : Annotation name (in the case using only one annotation)
-    --dry-run                     : Dry-run [default: False]
-    <sample_sheet>                : Tab-delimited text that contained the following columns:
-                                    sample; fastq1[fastq2]; group
+    --reference <NAME>   : Reference name [default: grch38]
+    --annotation <NAME>  : Annotation name (in the case using only one annotation)
+    --dry-run            : Dry-run [default: False]
+    <sample_sheet>       : Tab-delimited text that contained the following columns:
+                           sample; fastq1[fastq2]; group
 
 Supported references:
     grch38
@@ -37,11 +37,18 @@ from docopt import docopt
 import rnaseqde.utils as utils
 from rnaseqde.sample_sheet_manager import SampleSheetManager
 from rnaseqde.task.base import Task, DictWrapperTask
+from rnaseqde.task.end import EndTask
+
 from rnaseqde.task.align_star import AlignStarTask
 from rnaseqde.task.quant_rsem import QuantRsemTask
 from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
 from rnaseqde.task.de_ebseq import DeEbseqTask
-from rnaseqde.task.end import EndTask
+
+from rnaseqde.task.align_hisat2 import AlignHisat2Task
+from rnaseqde.task.conv_sam2bam import ConvSamToBamTask
+from rnaseqde.task.quant_stringtie import QuantStringtieTask
+from rnaseqde.task.prep_prepde import PrepPrepdeTask
+from rnaseqde.task.de_ballgown import DeBallgownTask
 
 from logging import (
     getLogger,
@@ -90,17 +97,25 @@ def main():
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
+    # Queue alignment tasks
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
         beginning = DictWrapperTask(opt_, k)
         AlignStarTask([beginning])
+        AlignHisat2Task([beginning])
 
-    align_tasks = [AlignStarTask]
+    ConvSamToBamTask(AlignHisat2Task.instances)
 
+    align_tasks = [AlignStarTask, ConvSamToBamTask]
+
+    # Queue quantification tasks
     for at in align_tasks:
         for t in at.instances:
-            pass
+            QuantStringtieTask([t])
+
+    for t in QuantStringtieTask.instances:
+        PrepPrepdeTask([t])
 
     for t in AlignStarTask.instances:
         QuantRsemTask([t])
@@ -108,19 +123,24 @@ def main():
     for t in QuantRsemTask.instances:
         ConvRsemToEbseqMatrixTask([t])
 
-    quant_tasks = [ConvRsemToEbseqMatrixTask]
+    quant_tasks = [ConvRsemToEbseqMatrixTask, QuantStringtieTask]
 
-    for at in quant_tasks:
-        for t in at.instances:
+    # Queue DE tasks
+    for qt in quant_tasks:
+        for t in qt.instances:
             pass
 
     for t in ConvRsemToEbseqMatrixTask.instances:
         DeEbseqTask([t])
 
-    EndTask(
-        required_tasks=Task.instances,
-        excepted_tasks=[beginning]
-        )
+    for t in QuantStringtieTask.instances:
+        DeBallgownTask([t])
+
+
+    # EndTask(
+    #     required_tasks=Task.instances,
+    #     excepted_tasks=[beginning]
+    #     )
 
     Task.run_all_tasks()
 

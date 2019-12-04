@@ -60,7 +60,7 @@ def load_conf(relpath, strict=True):
     return dict_
 
 
-def docmopt(doc, *args, **kwargs):
+def docmopt(doc, **kwargs):
     def tidyargv(argv: list, prefix='--'):
         list_ = []
         for v in argv:
@@ -77,12 +77,10 @@ def docmopt(doc, *args, **kwargs):
             'options_first': True
         })
 
-    logger.debug(kwargs['argv'])
-
-    return docopt(doc, *args, **kwargs)
+    return docopt(doc, **kwargs)
 
 
-def dictbind(src, dist, binding):
+def dictbind(src: dict, dist: dict, binding: dict):
     dict_ = OrderedDict(deepcopy(src))
     for k, v in binding.items():
         dict_[k] = dist[v]
@@ -90,7 +88,7 @@ def dictbind(src, dist, binding):
     return(dict_)
 
 
-def dictfilter(src: dict, keys):
+def dictfilter(src: dict, keys: list):
     dict_ = {}
     for k in keys:
         dict_[k] = src[k]
@@ -129,20 +127,6 @@ def optdict_to_str(dict_, delimiter=' ', tidy=False):
 
     str_ = delimiter.join(list_)
     return str_
-
-
-# TBD: Move to rnaseqde.task.base
-def scattered(inputs: list):
-    try:
-        sge_task_id = os.environ.get('SGE_TASK_ID', None)
-        sge_task_id = int(sge_task_id)
-    except ValueError:
-        pass
-    except TypeError:
-        logger.info("Run on local.\n")
-        return inputs
-    else:
-        return [inputs[~-sge_task_id]]
 
 
 def stripped(key):

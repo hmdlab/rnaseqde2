@@ -20,7 +20,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class AlignStarTask(CommandLineTask):
+class AlignHisat2Task(CommandLineTask):
     instances = []
     in_array = True
     script = utils.actpath_to_sympath(__file__)
@@ -30,8 +30,7 @@ class AlignStarTask(CommandLineTask):
         inputs_ = {'--output-dir': self.output_dir}
 
         binding = {
-                '--index': '--star-index',
-                '--gtf': '--gtf',
+                '--index': '--hisat2-index',
                 '--layout': '--layout',
                 '--strandness': '--strandness',
                 '--sample': '--sample',
@@ -43,16 +42,22 @@ class AlignStarTask(CommandLineTask):
 
         return inputs_
 
-    def output_prefix(self, input):
-        prefix_ = os.path.join(
+    def output_subdir(self, input):
+        subdir_ = os.path.join(
             self.output_dir,
-            utils.basename_replaced_ext('.fastq.gz', '', input),
-            ''
+            utils.basename_replaced_ext('.fastq.gz', '', input)
             )
 
-        os.makedirs(prefix_, exist_ok=True)
+        return subdir_
 
-        return prefix_
+    def output(self, input):
+        output_dir_ = self.output_subdir(input)
+        os.makedirs(output_dir_, exist_ok=True)
+        output_ = os.path.join(
+            output_dir_,
+            'aligned.sam')
+
+        return output_
 
     @property
     def outputs(self):
@@ -63,18 +68,10 @@ class AlignStarTask(CommandLineTask):
 
         samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
 
-        dict_ = super().inputs
+        outputs_ = super().inputs
+        outputs_['--sam'] = [self.output(s) for s in samples]
 
-        binding = {
-            '--bam': 'Aligned.sortedByCoord.out.bam',
-            '--transcript-bam': 'Aligned.toTranscriptome.out.bam',
-            '--sjdb': 'SJ.out.tab'
-        }
-
-        for k, v in binding.items():
-            dict_[k] = [os.path.join(self.output_prefix(s), v) for s in samples]
-
-        return dict_
+        return outputs_
 
     @property
     # TBD: Should implement on the super class or not
@@ -87,25 +84,24 @@ class AlignStarTask(CommandLineTask):
 
 def main():
     """
-    Wrapper for UGE: Align reads to the reference genome using STAR
+    Wrapper for UGE: Align reads to the reference genome using HISAT2
 
     Usage:
-        align_star [options] --index <PATH> --gtf <PATH> --fastq <PATH>... [--sample <STR>...]
+        align_hisat2 [options] --index <PATH> [--sample <STR>...] --fastq <PATH>...
 
     Options:
         --index <PATH>       : Reference index file
-        --gtf <PATH>         : GTF annotation file
-        --fastq <PATH>...    : (Ordered) FASTQ file(s)
         --layout <TYPE>      : Library layout (sr/pe) [default: sr]
         --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>  : Output directory [default: .]
         --sample <STR>...    : (Comma delimited) sample(s)
         --conf <PATH>        : Configuration file
         --dry-run            : Dry-run [default: False]
+        --fastq <PATH>...    : (Ordered) FASTQ file(s)
 
     """
 
-    task = AlignStarTask()
+    task = AlignHisat2Task()
 
     opt_runtime = utils.docmopt(dedent(main.__doc__))
     opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
@@ -130,18 +126,28 @@ def main():
         )
 
     binding = {
-        '--genomeDir': '--index',
-        '--sjdbGTFfile': '--gtf'
+        '-x': '--index'
     }
 
     opt = utils.dictbind(opt_static, opt_runtime, binding)
+    opt_ = {
+        'fr': {'--rna-strandness': 'FR'},
+        'rf': {'--rna-strandness':  'RF'},
+        'none': {}
+    }
+    opt.update(opt_[opt_runtime['--strandness']])
 
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
-        opt['--readFilesIn'] = ' '.join((f1, f2)).strip()
-        opt['--outFileNamePrefix'] = task.output_prefix(s)
+        if f2 == '':
+            opt['-U'] = f1
+        else:
+            opt['-1'] = f1
+            opt['-2'] = f2
+
+        opt['-S'] = task.output(s)
 
         cmd = "{base} {opt}".format(
-            base='STAR',
+            base='hisat2',
             opt=utils.optdict_to_str(opt)
         )
 
@@ -149,10 +155,10 @@ def main():
 
         if not opt_runtime['--dry-run']:
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(task.output_prefix(s), 'stderr.log'), 'w') as f:
+            with open(os.path.join(task.output_subdir(s), 'stderr.log'), 'w') as f:
                 f.write(proc.stderr.decode())
 
-            with open(os.path.join(task.output_prefix(s), 'stdout.log'), 'w') as f:
+            with open(os.path.join(task.output_subdir(s), 'stdout.log'), 'w') as f:
                 f.write(proc.stdout.decode())
 
 

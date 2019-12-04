@@ -83,11 +83,11 @@ def main():
     Options
         --index <PATH>              : Reference index file
         --layout <TYPE>             : Library layout (sr/pe) [default: sr]
-        --transcript-bam <PATH>...  : BAM file mapped to Transcriptome
         --strandness <TYPE>         : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>         : Output directory [default: .]
         --conf <PATH>               : Configuration file
         --dry-run                   : Dry-run [default: False]
+        --transcript-bam <PATH>...  : BAM file mapped to Transcriptome
 
     Example:
         rsem-calculate-expression \\
@@ -123,7 +123,7 @@ def main():
     args = [None] * 3
     args[1] = opt_runtime['--index']
 
-    bams = utils.scattered(opt_runtime['--transcript-bam'])
+    bams = task.scattered(opt_runtime['--transcript-bam'])
 
     for b in bams:
         args[0] = b
