@@ -70,7 +70,7 @@ class QuantStringtieTask(CommandLineTask):
 
 def main():
     """
-    Wrapper for UGE: Quantificate expression using StringTie
+    Wrapper for UGE: Quantify gene/transcript abundance using StringTie
 
     Usage:
         quant_stringtie [options] --gtf <PATH> --bam <PATH>...

@@ -50,6 +50,13 @@ from rnaseqde.task.quant_stringtie import QuantStringtieTask
 from rnaseqde.task.prep_prepde import PrepPrepdeTask
 from rnaseqde.task.de_ballgown import DeBallgownTask
 
+from rnaseqde.task.align_tophat2 import AlignTophat2Task
+from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
+
+# from rnaseqde.task.quant_kallisto import QuantKallistoTask
+# from rnaseqde.task.de_sleuth import DeSleuthTask
+
+
 from logging import (
     getLogger,
     StreamHandler,
@@ -101,18 +108,21 @@ def main():
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
-        beginning = DictWrapperTask(opt_, k)
+        beginning = DictWrapperTask(opt_, output_dir=k)
         AlignStarTask([beginning])
         AlignHisat2Task([beginning])
+        AlignTophat2Task([beginning])
+        # QuantKallistoTask([beginning])
 
     ConvSamToBamTask(AlignHisat2Task.instances)
 
-    align_tasks = [AlignStarTask, ConvSamToBamTask]
+    align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
 
     # Queue quantification tasks
     for at in align_tasks:
         for t in at.instances:
             QuantStringtieTask([t])
+            DeCuffdiffTask([t])
 
     for t in QuantStringtieTask.instances:
         PrepPrepdeTask([t])
@@ -136,6 +146,8 @@ def main():
     for t in QuantStringtieTask.instances:
         DeBallgownTask([t])
 
+    # for t in QuantKallistoTask.instances:
+    #     DeSleuthTask([t])
 
     # EndTask(
     #     required_tasks=Task.instances,
