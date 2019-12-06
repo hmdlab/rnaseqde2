@@ -53,8 +53,8 @@ from rnaseqde.task.de_ballgown import DeBallgownTask
 from rnaseqde.task.align_tophat2 import AlignTophat2Task
 from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
 
-# from rnaseqde.task.quant_kallisto import QuantKallistoTask
-# from rnaseqde.task.de_sleuth import DeSleuthTask
+from rnaseqde.task.quant_kallisto import QuantKallistoTask
+from rnaseqde.task.de_sleuth import DeSleuthTask
 
 
 from logging import (
@@ -112,7 +112,7 @@ def main():
         AlignStarTask([beginning])
         AlignHisat2Task([beginning])
         AlignTophat2Task([beginning])
-        # QuantKallistoTask([beginning])
+        QuantKallistoTask([beginning])
 
     ConvSamToBamTask(AlignHisat2Task.instances)
 
@@ -146,8 +146,8 @@ def main():
     for t in QuantStringtieTask.instances:
         DeBallgownTask([t])
 
-    # for t in QuantKallistoTask.instances:
-    #     DeSleuthTask([t])
+    for t in QuantKallistoTask.instances:
+        DeSleuthTask([t])
 
     # EndTask(
     #     required_tasks=Task.instances,

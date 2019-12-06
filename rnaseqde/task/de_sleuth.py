@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
-#$ -l s_vmem=8G -l mem_req=8G
+#$ -l s_vmem=32G -l mem_req=32G
 #$ -cwd
 #$ -o ugelogs/
 #$ -e ugelogs/
@@ -19,7 +19,7 @@ from logging import getLogger
 logger = getLogger(__name__)
 
 
-class DeBallgownTask(CommandLineTask):
+class DeSleuthTask(CommandLineTask):
     instances = []
     in_array = False
     script = utils.actpath_to_sympath(__file__)
@@ -32,11 +32,8 @@ class DeBallgownTask(CommandLineTask):
                 '--gtf': '--gtf',
                 '--sample-sheet': '<sample_sheet>',
                 '--dry-run': '--dry-run',
-                '--ctab': '--ctab'
+                '--h5': '--h5'
                 }
-
-        if self.upper().__class__.__name__ == 'QuantStringtieTask':
-            del binding['--gtf']
 
         inputs_ = utils.dictbind(inputs_, super().inputs, binding)
 
@@ -45,47 +42,45 @@ class DeBallgownTask(CommandLineTask):
     @property
     def outputs(self):
         outputs_ = super().inputs
-
-        for v in ['gene', 'transcript']:
-            outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, '_results.tsv')
-            outputs_['--' + v + '-de-tsv'] = os.path.join(self.output_dir, v, '_results_de.tsv')
+        outputs_['--transcript-tsv'] = os.path.join(self.output_dir, 'results.tsv')
 
         return outputs_
 
 
 def main():
     """
-    Wrapper for UGE: Perform DE analysis using ballgown
+    Wrapper for UGE: Perform DE analysis using Sleuth
 
     Usage:
-        de_ballgown [options] [--gtf <PATH>] --sample-sheet <PATH> --ctab <PATH>...
+        de_sleuth [options] --gtf <PATH> --sample-sheet <PATH> --h5 <PATH>...
 
     Options:
-        --gtf <PATH>            : GTF annotation file
-        --sample-sheet <PATH>   : Sample sheet
-        --output-dir <PATH>     : Output directory [default: .]
-        --dry-run               : Dry-run [default: False]
-        --ctab <PATH>...        : Count tab delimited file(s)
+        --gtf <PATH>           : GTF annotation file
+        --output-dir <PATH>    : Output directory [default: .]
+        --sample-sheet <PATH>  : Sample sheet
+        --conf <PATH>          : Configuration file
+        --dry-run              : Dry-run [default: False]
+        --h5 <PATH>...         : kallisto h5 file(s)
 
     """
 
-    task = DeBallgownTask()
+    task = DeSleuthTask()
 
     opt_runtime = utils.docmopt(dedent(main.__doc__))
     task.output_dir = opt_runtime['--output-dir']
+
     os.makedirs(task.output_dir, exist_ok=True)
 
-    opt = opt_runtime
-
     args = [None] * 4
-    args[0] = opt['--output-dir']
-    args[1] = opt['--sample-sheet']
-    args[2] = opt['--gtf'] if opt['--gtf'] else "'#'"
-    args[3] = ' '.join(opt['--ctab'])
+
+    args[0] = opt_runtime['--gtf']
+    args[1] = opt_runtime['--sample-sheet']
+    args[2] = opt_runtime['--output-dir']
+    args[3] = ' '.join(opt_runtime['--h5'])
 
     cmd = "{base} {script} {args}".format(
         base='Rscript',
-        script=utils.from_root('scripts/de_ballgown.R'),
+        script=utils.from_root('scripts/de_sleuth.R'),
         args=' '.join(args)
         )
 
