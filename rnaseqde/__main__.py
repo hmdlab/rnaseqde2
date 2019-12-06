@@ -56,6 +56,9 @@ from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
 from rnaseqde.task.quant_kallisto import QuantKallistoTask
 from rnaseqde.task.de_sleuth import DeSleuthTask
 
+from rnaseqde.task.conv_any2raw_tximport import ConvAny2RawTximportTask
+from rnaseqde.task.de_edger import DeEdgerTask
+
 
 from logging import (
     getLogger,
@@ -133,13 +136,13 @@ def main():
     for t in QuantRsemTask.instances:
         ConvRsemToEbseqMatrixTask([t])
 
-    quant_tasks = [ConvRsemToEbseqMatrixTask, QuantStringtieTask]
+    quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
 
-    # Queue DE tasks
     for qt in quant_tasks:
         for t in qt.instances:
-            pass
+            ConvAny2RawTximportTask([t])
 
+    # Queue DE tasks
     for t in ConvRsemToEbseqMatrixTask.instances:
         DeEbseqTask([t])
 
@@ -149,10 +152,13 @@ def main():
     for t in QuantKallistoTask.instances:
         DeSleuthTask([t])
 
-    # EndTask(
-    #     required_tasks=Task.instances,
-    #     excepted_tasks=[beginning]
-    #     )
+    for t in ConvAny2RawTximportTask.instances:
+        DeEdgerTask([t])
+
+    EndTask(
+        required_tasks=Task.instances,
+        excepted_tasks=[beginning]
+        )
 
     Task.run_all_tasks()
 

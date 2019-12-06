@@ -75,11 +75,7 @@ def main():
     task.output_dir = opt_runtime['--output-dir']
 
     # NOTE: Input matrix MUST ordered by group
-    n_reps = ' '.join(
-        [str(v) for v in collections.Counter(opt_runtime['--group']).values()]
-        )
-
-    # NOTE: rsem-for-ebseq-find-DE.R only can specify postional args[0..4]
+    n_reps = [str(v) for v in collections.Counter(opt_runtime['--group']).values()]
 
     os.makedirs(task.output_dir, exist_ok=True)
 
