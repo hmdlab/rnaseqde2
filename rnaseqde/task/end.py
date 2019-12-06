@@ -58,12 +58,14 @@ def main():
     print(cwd)
 
     for output in task_outputs:
-        if cwd in output:
-            if not os.path.exists(output):
-                messages.append("[ERR] {} doesn't exists.".format(output))
-                error_occured = True
+        if cwd not in output:
+            output_ = os.path.join(cwd, output)
         else:
-            messages.append("[WRN] {} passed.".format(output))
+            output_ = output
+
+        if not os.path.exists(output_):
+            messages.append("[ERR] {} doesn't exists.".format(output))
+            error_occured = True
 
     if error_occured:
         with open('failed.txt', 'w') as f:
