@@ -62,7 +62,7 @@ class QuantRsemTask(CommandLineTask):
         binding = {
             '--gene-tsv': '.genes.results',
             '--transcript-tsv': '.isoforms.results',
-            '--stats': '.stats'
+            '--stat': '.stat'
         }
 
         dict_ = super().inputs

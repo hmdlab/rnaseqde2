@@ -24,7 +24,7 @@ output_dir <- argv[3]
 kallisto_h5 <- argv[-(1:3)]
 
 # Reading in sample information
-s2c <- read.table(sample_sheet_path, header = TRUE, stringsAsFactors = FALSE) %>% select(sample, group)
+s2c <- read.table(sample_sheet_path, header = TRUE, sep = '\t', stringsAsFactors = FALSE) %>% select(sample, group)
 
 kallisto_dirs <- kallisto_h5 %>% dirname
 names(kallisto_dirs) <- kallisto_dirs %>% basename
@@ -34,13 +34,13 @@ kallisto_dirs <- kallisto_dirs[match(s2c[, 1], names(kallisto_dirs))]
 s2c$path <- as.character(kallisto_dirs)
 
 # Reading in transcript-gene annotation relationship
-load_gtf <- function(path, cols, types = 'transcript') {
+load_gtf <- function(path, cols, types = c('transcript')) {
   gtf <- path %>% readGFF(version = 2L, tags = cols, filter = list(type = types))
   gtf <- gtf %>% select(cols)
   return(gtf)
 }
 
-t2g <- load_gtf(gtf_path, cols = c('transcript_id', 'gene_id', 'gene_name')) %>% distinct
+t2g <- load_gtf(gtf_path, cols = c('transcript_id', 'gene_id', 'gene_name'), types = c('exon')) %>% distinct
 colnames(t2g) <- c('target_id', 'ensembl_gene', 'ext_gene')
 
 # Reading in kallisto results and then fit the models

@@ -117,7 +117,8 @@ def main():
         AlignTophat2Task([beginning])
         QuantKallistoTask([beginning])
 
-    ConvSamToBamTask(AlignHisat2Task.instances)
+    for t in AlignHisat2Task.instances:
+        ConvSamToBamTask([t])
 
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
 

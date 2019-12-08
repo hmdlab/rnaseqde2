@@ -8,16 +8,17 @@ library(readr)
 
 
 # Reading in args
-args <- commandArgs(trailingOnly = TRUE)
+argv <- commandArgs(trailingOnly = TRUE)
 
-if (length(args) < 3) {
-  cat("Usage: de_edger <sample_sheet> <output_dir> <count_mat_tsv>\n")
+if (length(argv) < 4) {
+  cat("Usage: de_edger <sample_sheet> <output_dir> <level> <count_mat_tsv>\n")
   q(status = 1)
 }
 
-sample_sheet_path <- args[1]
-output_dir <- args[2]
-count_mat_path <- args[3]
+sample_sheet_path <- argv[1]
+output_dir <- argv[2]
+level <- argv[3]
+count_mat_path <- argv[4]
 
 
 # Function definitions
@@ -92,11 +93,11 @@ for (i in 1:length(results_et)) {
   et <- results_et[[i]]
 
   comparison <- et$comparison %>% paste(collapse = '_vs_')
-  output <- paste0('degs_', comparison, '.tsv')
+  output <- paste0('result_', comparison, '.tsv')
   top_tags <- et %>% topTags(n = nrow(et$table)) %>% as.data.frame
 
   # export each table
-  top_tags <- top_tags %>% rownames_to_column %>% rename(GeneID = rowname)
+  top_tags <- top_tags %>% rownames_to_column(var = 'GeneID')
   top_tags %>% write_tsv_from(path = output, from = output_dir)
 
   # export merge table
@@ -111,7 +112,7 @@ for (i in 1:length(results_et)) {
 ## Create TSV
 colnames(expressions_cpm)[-1] <- paste(colnames(expressions_cpm)[-1], 'CPM',  sep = '_')
 table_merged <- table_merged %>% left_join(expressions_cpm, by = 'GeneID')
-table_merged %>% arrange(GeneID) %>% write_tsv_from(path = 'degs_comparisons.tsv', from = output_dir)
+table_merged %>% arrange(GeneID) %>% write_tsv_from(path = 'result_comparisions.tsv', from = output_dir)
 
 
 # Create summary
@@ -122,4 +123,4 @@ for (i in 1:length(results_et)) {
   degs_counts <- degs_counts %>% c(topTags(results_et[[i]],  n = nrow(results_et[[i]]$table)) %>% as.data.frame %>% rownames_to_column %>% filter(FDR < 0.05 & abs(logFC) > 1) %>% nrow)
 }
 
-data.frame(comparison = comparisons, count = degs_counts) %>% write_tsv_from('degs_summary.tsv', from = output_dir)
+data.frame(comparison = comparisons, count = degs_counts) %>% write_tsv_from('summary.tsv', from = output_dir)

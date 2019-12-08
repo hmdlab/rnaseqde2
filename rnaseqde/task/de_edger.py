@@ -9,6 +9,7 @@ import sys
 import os
 import subprocess
 from textwrap import dedent
+import itertools
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -42,13 +43,20 @@ class DeEdgerTask(CommandLineTask):
     def outputs(self):
         outputs_ = super().inputs
 
+        groups_ = super().inputs['--group']
+        group_ = sorted(set(groups_), key=groups_.index)
+        combinations = list(itertools.combinations(group_, 2))
+
         # TODO: Append gene-level analysis
         for v in ['transcript']:
-            outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, '_results.tsv')
-            outputs_['--' + v + '-de-tsv'] = os.path.join(self.output_dir, v, '_results_de.tsv')
+            outputs_['--' + v + '-all-tsv'] = os.path.join(self.output_dir, v, 'result_all_comparisons.tsv')
+            outputs_['--' + v + '-summary'] = os.path.join(self.output_dir, v, 'summary.tsv')
+
+            for c in combinations:
+                file_name = "result_{}_vs_{}.tsv".format(c[0], c[1])
+                outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, file_name)
 
         return outputs_
-
 
 
 def main():
@@ -62,7 +70,7 @@ def main():
         --sample-sheet <PATH>        : Sample sheet
         --output-dir <PATH>          : Output directory [default: .]
         --dry-run                    : Dry-run [default: False]
-        --count-mat-tsv <PATH>  : Transcrit-level count matrix file
+        --count-mat-tsv <PATH>       : Transcrit-level count matrix file
 
     """
 
@@ -76,11 +84,12 @@ def main():
         output_dir_ = os.path.join(task.output_dir, v)
         os.makedirs(output_dir_, exist_ok=True)
 
-        args = [None] * 3
+        args = [None] * 4
 
         args[0] = opt_runtime['--sample-sheet']
         args[1] = opt_runtime['--output-dir']
-        args[2] = opt_runtime['--count-mat-tsv']
+        args[2] = v
+        args[3] = opt_runtime['--count-mat-tsv']
 
         cmd = "{base} {script} {args}".format(
             base='Rscript',
