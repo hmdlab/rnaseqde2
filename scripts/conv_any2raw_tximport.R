@@ -33,7 +33,7 @@ if (length(argv) < 3) {
 
 output_dir <- argv[1]
 type <- argv[2]
-unit <- argv[3]
+level <- argv[3]
 inputs <- argv[-3:-1]
 
 
@@ -65,5 +65,5 @@ load_cuffdiff <- function(inputs) {
 }
 
 df <- load_data(type, inputs)
-output_path <- file.path(output_dir, 'count_matrix.tsv')
+output_path <- file.path(output_dir, level, 'count_matrix.tsv')
 df %>% write.table(file = output_path, quote = FALSE, sep = '\t', col.names = NA)
