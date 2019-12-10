@@ -1,7 +1,6 @@
 # NOTE: To change for read length [default: 100 -> 50]
 --mate-inner-dist: 50
 --mate-std-dev: 25
---library-type: fr-secondstrand
 --b2-very-sensitive: false
 --coverage-search: true
 --read-mismatches: 18
