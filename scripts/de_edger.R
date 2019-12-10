@@ -20,6 +20,8 @@ output_dir <- argv[2]
 level <- argv[3]
 count_mat_path <- argv[4]
 
+output_dir <- file.path(output_dir, level)
+
 
 # Function definitions
 extract_degs <- function(expressions, groups, comparisions, from){
@@ -86,6 +88,8 @@ comparisions <- comparisions[keep, ]
 degs <- extract_degs(expressions, groups, comparisions, output_dir)
 results_et <- degs[[1]]
 expressions_cpm <- degs[[2]]
+
+dir.create(file.path(output_dir), showWarnings = FALSE, recursive = TRUE)
 
 ## Merge result tables
 table_merged <- data.frame()

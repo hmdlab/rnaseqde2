@@ -36,6 +36,7 @@ type <- argv[2]
 level <- argv[3]
 inputs <- argv[-3:-1]
 
+output_dir <- file.path(output_dir, level)
 
 # Function definitions
 load_data <- function(type, inputs) {
@@ -65,5 +66,7 @@ load_cuffdiff <- function(inputs) {
 }
 
 df <- load_data(type, inputs)
-output_path <- file.path(output_dir, level, 'count_matrix.tsv')
+output_path <- file.path(output_dir, 'count_matrix.tsv')
+dir.create(dirname(output_path), showWarnings = FALSE, recursive = TRUE)
+
 df %>% write.table(file = output_path, quote = FALSE, sep = '\t', col.names = NA)
