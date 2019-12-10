@@ -3,4 +3,5 @@
 --pen-noncansplice: 12
 --mp: 1,0
 --sp: 3,0
+--no-mixed: true
 --threads: 4

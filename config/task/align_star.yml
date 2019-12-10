@@ -21,6 +21,5 @@
 --alignSJDBoverhangMin: 3
 --outFilterType: BySJout
 --twopassMode: Basic
---outSAMunmapped: Within
 --runThreadN: 4
 --runRNGseed: 777

@@ -146,6 +146,9 @@ def main():
 
         opt['-S'] = task.output(s)
 
+        # NOTE: Output unaligned reads
+        opt['--un-conc'] = task.output(s).replace('aligned.sam', 'unaligned.fastq')
+
         cmd = "{base} {opt}".format(
             base='hisat2',
             opt=utils.optdict_to_str(opt)
