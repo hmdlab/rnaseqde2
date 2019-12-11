@@ -93,23 +93,21 @@ def main():
     task.output_dir = opt_runtime['--output-dir']
     os.makedirs(task.output_dir, exist_ok=True)
 
-    args = [None] * 4
+    opt = utils.dictfilter(opt_runtime, ['--type', '--level', '--output-dir'])
+    args = [' '.join(opt_runtime['--input'])]
 
-    args[0] = opt_runtime['--output-dir']
-    args[1] = opt_runtime['--type']
-    args[2] = opt_runtime['--level']
-    args[3] = ' '.join(opt_runtime['--input'])
-
-    cmd = "{base} {script} {args}".format(
+    cmd = "{base} {script} {opt} {args}".format(
         base='Rscript',
         script=utils.from_root('scripts/conv_any2raw_tximport.R'),
+        opt=utils.optdict_to_str(opt),
         args=' '.join(args)
     )
 
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
-        subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        utils.write_proc_log(proc, task.output_dir)
 
 
 if __name__ == '__main__':

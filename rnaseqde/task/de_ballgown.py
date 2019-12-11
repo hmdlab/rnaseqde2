@@ -75,24 +75,22 @@ def main():
     task.output_dir = opt_runtime['--output-dir']
     os.makedirs(task.output_dir, exist_ok=True)
 
-    opt = opt_runtime
+    opt = utils.dictfilter(opt_runtime, ['--output-dir', '--sample-sheet'])
+    opt['--gtf'] = opt_runtime['--gtf'] if opt_runtime['--gtf'] else "'#'"
+    args = [' '.join(opt_runtime['--ctab'])]
 
-    args = [None] * 4
-    args[0] = opt['--output-dir']
-    args[1] = opt['--sample-sheet']
-    args[2] = opt['--gtf'] if opt['--gtf'] else "'#'"
-    args[3] = ' '.join(opt['--ctab'])
-
-    cmd = "{base} {script} {args}".format(
+    cmd = "{base} {script} {opt} {args}".format(
         base='Rscript',
         script=utils.from_root('scripts/de_ballgown.R'),
+        opt=utils.optdict_to_str(opt),
         args=' '.join(args)
         )
 
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
-        subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        utils.write_proc_log(proc, task.output_dir)
 
 
 if __name__ == '__main__':

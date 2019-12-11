@@ -79,28 +79,30 @@ def main():
 
     task.output_dir = opt_runtime['--output-dir']
 
+    opt = utils.dictfilter(opt_runtime, exclude=['--count-mat-tsv', '--dry-run'])
+
+    args = [None] * 1
+    args[0] = opt_runtime['--count-mat-tsv']
+
     # TODO: Append gene-level analysis
     for v in ['transcript']:
         output_dir_ = os.path.join(task.output_dir, v)
         os.makedirs(output_dir_, exist_ok=True)
 
-        args = [None] * 4
+        opt['--level'] = v
 
-        args[0] = opt_runtime['--sample-sheet']
-        args[1] = opt_runtime['--output-dir']
-        args[2] = v
-        args[3] = opt_runtime['--count-mat-tsv']
-
-        cmd = "{base} {script} {args}".format(
+        cmd = "{base} {script} {opt} {args}".format(
             base='Rscript',
             script=utils.from_root('scripts/de_edger.R'),
+            opt=utils.optdict_to_str(opt),
             args=' '.join(args)
         )
 
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
-        subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        utils.write_proc_log(proc, task.output_dir)
 
 
 if __name__ == '__main__':

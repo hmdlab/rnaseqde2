@@ -1,32 +1,39 @@
 #! /usr/bin/env Rscript
-#
-# Perform DE analysis using ballgown
-#
+
+'Perform DE analysis using edgeR
+
+Usage:
+  de_edger [--nofilter] [--gtf <PATH>] --sample-sheet <PATH> [--output-dir <PATH>] <ctab>...
+
+Options:
+  --nofilter            : Disable filter [defalt: FALSE]
+  --gtf <TYPE>          : GTF file (necessary for RSEM data) [default: #]
+  --sample-sheet <PATH> : Sample sheet file
+  --output-dir <PATH>   : Output directory [default: .]
+  <ctab>...             : Count matrix file(s)
+
+' -> doc
 
 options(stringAsFactors = FALSE)
 
+# Reading in args
+library(docopt)
+argv <- docopt(doc)
+sample_sheet_path <- argv$`sample-sheet`
+output_dir <- argv$`output-dir`
+gtf <- argv$gtf
+ctab <- argv$ctab
+
+
+# Requires
 library(ballgown)
-library(RSkittleBrewer)
 library(genefilter)
 library(dplyr)
 library(readr)
 
 
-# Reading in args
-args <- commandArgs(trailingOnly=TRUE)
-
-if (length(args) < 4) {
-  cat("Usage: de_ballgown <output_dir> <sample_sheet> <gtf> <ctab>...\n")
-  q(status = 1)
-}
-
-output_dir <- args[1]
-sample_sheet <- args[2]
-gtf <- args[3]
-ctab <- args[-(1:3)]
-
 ## Reading in phenotype data
-pheno_data <- read.table(sample_sheet, header = TRUE, stringsAsFactors = FALSE)
+pheno_data <- read.table(sample_sheet_path, header = TRUE, stringsAsFactors = FALSE)
 data_files <- dirname(ctab)
 names(data_files) <- basename(data_files)
 
@@ -55,7 +62,11 @@ if (gtf == '#') {
 
 ## Filter low abundance genes
 # NOTE: Is this filter really correct?
-bg_filt <- subset(bg, "rowVars(texpr(bg)) > 1", genomesubset = TRUE)
+if (!argv$nofilter) {
+  bg_filt <- subset(bg, "rowVars(texpr(bg)) > 1", genomesubset = TRUE)
+} else {
+  bg_filt <- bg
+}
 
 ## Detect DEs at transcript-level
 results_transcripts <-  stattest(bg_filt, feature='transcript', covariate='group', getFC = TRUE, meas='FPKM')
@@ -76,9 +87,3 @@ results_genes <- arrange(results_genes, pval)
 ## Write results to TSV
 write_tsv(results_transcripts, path = file.path(output_dir, "transcripts_results.csv"), col_names = TRUE)
 write_tsv(results_genes, path = file.path(output_dir, "genes_results.csv"), col_names = TRUE)
-
-## Filter for genes with q-val <0.05 & Write results to TSV
-# results_transcripts_de <- subset(results_transcripts, results_transcripts$qval < 0.05)
-# results_genes_de <- subset(results_genes, results_genes$qval < 0.05)
-# write_tsv(results_transcripts_de, path = file.path(output_dir, "transcripts_results_de.csv"), col_names = TRUE)
-# write_tsv(results_genes_de, path = file.path(output_dir, "genes_results_de.csv"), col_names = TRUE)

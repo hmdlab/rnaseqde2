@@ -71,23 +71,21 @@ def main():
 
     os.makedirs(task.output_dir, exist_ok=True)
 
-    args = [None] * 4
+    opt = utils.dictfilter(opt_runtime, ['--gtf', '--sample-sheet', '--output-dir'])
+    args = [' '.join(opt_runtime['--h5'])]
 
-    args[0] = opt_runtime['--gtf']
-    args[1] = opt_runtime['--sample-sheet']
-    args[2] = opt_runtime['--output-dir']
-    args[3] = ' '.join(opt_runtime['--h5'])
-
-    cmd = "{base} {script} {args}".format(
+    cmd = "{base} {script} {opt} {args}".format(
         base='Rscript',
         script=utils.from_root('scripts/de_sleuth.R'),
+        opt=utils.optdict_to_str(opt),
         args=' '.join(args)
         )
 
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
-        subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        utils.write_proc_log(proc, task.output_dir)
 
 
 if __name__ == '__main__':

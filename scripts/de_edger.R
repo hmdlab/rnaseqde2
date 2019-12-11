@@ -1,26 +1,37 @@
 #! /usr/bin/env Rscript
 
+'Perform DE analysis using edgeR
+
+Usage:
+  de_edger [--nofilter] --sample-sheet <PATH> --level <TYPE> [--output-dir <PATH>] <count-mat-tsv>
+
+Options:
+  --nofilter            : Disable filter [defalt: FALSE]
+  --sample-sheet <PATH> : Sample sheet file
+  --output-dir <PATH>   : Output directory [default: .]
+  --level <TYPE>        : Analysis level (transcript/gene)
+  <count-mat-tsv>       : Count matrix file
+
+' -> doc
+
+options(stringAsFactors = FALSE)
+
+# Reading in args
+library(docopt)
+argv <- docopt(doc)
+sample_sheet_path <- argv$`sample-sheet`
+output_dir <- argv$`output-dri`
+level <- argv$level
+count_mat_path <- argv$`count-mat-tsv`
+
+output_dir <- file.path(output_dir, level)
+
+# Requires
 library(limma)
 library(edgeR)
 library(data.table)
 library(tidyverse)
 library(readr)
-
-
-# Reading in args
-argv <- commandArgs(trailingOnly = TRUE)
-
-if (length(argv) < 4) {
-  cat("Usage: de_edger <sample_sheet> <output_dir> <level> <count_mat_tsv>\n")
-  q(status = 1)
-}
-
-sample_sheet_path <- argv[1]
-output_dir <- argv[2]
-level <- argv[3]
-count_mat_path <- argv[4]
-
-output_dir <- file.path(output_dir, level)
 
 
 # Function definitions
@@ -29,30 +40,37 @@ extract_degs <- function(expressions, groups, comparisions, from){
   results_et <- list()
 
   # calc dispersion
-  dgelist <- DGEList(counts = expressions, group = groups)
-  keep <- rowSums(dgelist$counts > CUTOFF_RAW) %>% {. >= min_replicates(groups)}
-  dgelist_filtered <- dgelist[keep, , keep.lib.sizes = FALSE]
-  if (min_replicates(groups) > 1) {
-    dgelist_filtered <- calcNormFactors(dgelist_filtered)
-    dgelist_filtered <- estimateCommonDisp(dgelist_filtered)
-    dgelist_filtered <- estimateTagwiseDisp(dgelist_filtered)
+  dge <- DGEList(counts = expressions, group = groups)
+
+  # NOTE: --nofilter option
+  if (!argv$nofilter) {
+    keep <- rowSums(dge$counts > CUTOFF_RAW) %>% {. >= min_replicates(groups)}
+    dge_filt <- dge[keep, , keep.lib.sizes = FALSE]
+  } else {
+    dge_filt <- dge
   }
-  dgelist_filtered %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')  %>% write_tsv_from(paste0('expressions_cpm', '.tsv'), from)
+
+  if (min_replicates(groups) > 1) {
+    dge_filt <- calcNormFactors(dge_filt)
+    dge_filt <- estimateCommonDisp(dge_filt)
+    dge_filt <- estimateTagwiseDisp(dge_filt)
+  }
+  dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')  %>% write_tsv_from(paste0('expressions_cpm', '.tsv'), from)
   # do exact test (single factor - pairwise)
 
-  expressions_cpm <- dgelist_filtered %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')
+  expressions_cpm <- dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')
 
   for (i in 1:nrow(comparisions)) {
     s1 <- comparisions[i, ]$sample_1 %>% as.character
     s2 <- comparisions[i, ]$sample_2 %>% as.character
 
     if (min_replicates(groups) > 1) {
-      et <- exactTest(dgelist_filtered, pair = c(s1, s2))
+      et <- exactTest(dge_filt, pair = c(s1, s2))
     } else {
       # set squuare root dispersion for human
       message('There is no replication, setting dispersion to typical value.')
       bcv <- 0.4
-      et <- exactTest(dgelist_filtered, pair = c(s1, s2), dispersion = bcv^2)
+      et <- exactTest(dge_filt, pair = c(s1, s2), dispersion = bcv^2)
     }
     results_et[[i]] <- et
   }

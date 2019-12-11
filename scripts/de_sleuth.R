@@ -1,27 +1,33 @@
 #! /usr/bin/env Rscript
-#
-# Perform DE analysis using ballgown
-#
+
+'Perform DE analysis using sleuth
+
+Usage:
+  de_sleuth --gtf <PATH> --sample-sheet <PATH> [--output-dir <PATH>] <h5>...
+
+Options:
+  --gtf <TYPE>          : GTF file (necessary for RSEM data) [default: #]
+  --sample-sheet <PATH> : Sample sheet file
+  --output-dir <PATH>   : Output directory [default: .]
+  <h5>...               : Kallisto h5 result file(s)
+
+' -> doc
 
 options(stringAsFactors = FALSE)
 
+# Reading in args
+library(docopt)
+argv <- docopt(doc)
+sample_sheet_path <- argv$`sample-sheet`
+output_dir <- argv$`output-dir`
+gtf <- args$gtf
+kallisto_h5 <- args$h5
+
+
+# Requires
 library(sleuth)
 library(tidyverse)
 library(rtracklayer)
-
-
-# Reading in args
-argv <- commandArgs(TRUE)
-
-if (length(argv) < 4) {
-  cat("Usage: de_sleuth <gtf> <sample_sheet> <output_dir> <kallist_h5>...\n")
-  q(status = 1)
-}
-
-gtf_path <- argv[1]
-sample_sheet_path <- argv[2]
-output_dir <- argv[3]
-kallisto_h5 <- argv[-(1:3)]
 
 # Reading in sample information
 s2c <- read.table(sample_sheet_path, header = TRUE, sep = '\t', stringsAsFactors = FALSE) %>% select(sample, group)

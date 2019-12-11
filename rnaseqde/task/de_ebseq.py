@@ -64,9 +64,6 @@ def main():
         --gene-mat-tsv <PATH>        : Gene-level count matrix file
         --transcript-mat-tsv <PATH>  : Transcrit-level count matrix file
 
-    Example:
-        Rscript scripts/rsem-for-ebseq-find-DE.R <path_to_ebseq_lib> [ngvec] <gene-transcript-matrix> <output_prefix> [<conditions>...]
-
     """
 
     task = DeEbseqTask()
@@ -77,38 +74,40 @@ def main():
     # NOTE: Input matrix MUST ordered by group
     n_reps = [str(v) for v in collections.Counter(opt_runtime['--group']).values()]
 
-    os.makedirs(task.output_dir, exist_ok=True)
-
-    for level in ['gene', 'transcript']:
-        output_dir_ = os.path.join(task.output_dir, level)
+    for v in ['gene', 'transcript']:
+        opt = {}
+        output_dir_ = os.path.join(task.output_dir, v)
         os.makedirs(output_dir_, exist_ok=True)
 
-        key_ = "--{}-mat-tsv".format(level)
+        key_ = "--{}-mat-tsv".format(v)
 
-        args = [None] * 5
-        ngvector = "'#'" if level == 'gene' else opt_runtime['--ngvector']
+        args = [None] * 3
+        ngvector = "'#'" if v == 'gene' else opt_runtime['--ngvector']
 
-        args[0] = '.'
-        args[1] = ngvector
-        args[2] = opt_runtime[key_]
-        args[3] = os.path.join(output_dir_, 'results.tsv')
-        args[4] = ' '.join(n_reps)
+        opt['--ngvector'] = ngvector
+        opt['--level'] = v
+        opt['--output-dir'] = output_dir_
+
+        args[0] = opt_runtime[key_]
+        args[1], args[2] = n_reps
 
         if None in args:
             for i, _ in enumerate(args):
                 if _ is None:
                     raise Exception("Positional arg{} is not assigned.".format(i))
 
-        cmd = "{base} {script} {args}".format(
+        cmd = "{base} {script} {opt} {args}".format(
             base='Rscript',
             script=utils.from_root('scripts/rsem-for-ebseq-find-DE.R'),
+            opt=utils.optdict_to_str(opt),
             args=' '.join(args)
             )
 
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            utils.write_proc_log(proc, output_dir_, stdout=True)
 
 
 if __name__ == '__main__':

@@ -1,33 +1,39 @@
 #! /usr/bin/env Rscript
-#
-# RSEM-for-EBSeq-find-DE script (Modified from the same name script included with RSEM)
-#
-# Usage:
-#   Rscript this.R <path_to_ebseq_lib> [ngvF] <data_matrix_file> <output_file> [<num_rep_condition>...]
-#
-# Example:
-#   Rscript this.R $HOME/local/ebseq ngvector.ngvec IsoMat.txt IsoMat.results 3 3
-#
+
+'Perform DE analysis using EBSeq
+
+Usage:
+  rsem-for-ebseq-find-DE  [--ngvector <PATH>] --level <TYPE> [--output-dir <PATH>] <count-mat-tsv> <n_rep1> <n_rep2>
+
+Options:
+  --ngvector <PATH>            : NgVector file [defaul: #]
+  --level <TYPE>               : Analysis level (transcript/gene)
+  --output-dir <PATH>          : Output directory [default: .]
+  <count-mat-tsv>              : Count matrix file
+  <n1>                         : N replicates of Group 1
+  <n2>                         : N replicates of Group 2
+
+' -> doc
 
 options(stringAsFactors = FALSE)
 
-library(EBSeq)
+# Reading in args
+library(docopt)
+argv <- docopt(doc)
 
-argv <- commandArgs(TRUE)
-
-if (length(argv) < 6) {
-  cat("Usage: rsem-for-ebseq-find-DE path ngvector_file data_matrix_file output_file number_of_replicate_for_condition_1 number_of_replicate_for_condition_2 ...\n")
-  q(status = 1)
-}
-
-path <- argv[1]
-ngvector_file <- argv[2]
-data_matrix_file <- argv[3]
-output_file <- argv[4]
+ngvector_file <- argv$`ngvector`
+data_matrix_file <- argv$`count-mat-tsv`
+output_dir <- argv$`output_dir`
+output_file <- file.path(output_dir, "results.tsv")
 norm_out_file <- paste0(output_file, ".normalized_data_matrix")
 
-nc <- length(argv) - 4;
-num_reps <- as.numeric(argv[5:(5+nc-1)])
+# Requires
+library(EBSeq)
+
+
+# CHANGE: Fixed length args
+nc <- 2
+num_reps <- as.numeric(c(argv$n1, argv$n2))
 
 # Reading in count data & test
 DataMat <- data.matrix(read.table(data_matrix_file))
@@ -46,6 +52,7 @@ if (ngvector_file != "#") {
   ngvector <- ngvector[rownames(DataMat)]
   stopifnot(!is.null(ngvector))
 }
+
 if (nc == 2) {
   EBOut <- NULL
   EBOut <- EBTest(Data = DataMat, NgVector = ngvector, Conditions = conditions, sizeFactors = Sizes, maxround = 5)
@@ -56,30 +63,6 @@ if (nc == 2) {
   colnames(results) <- c("PPEE", "PPDE", "PostFC", "RealFC","C1Mean","C2Mean")
   results <- results[order(results[,"PPDE"], decreasing = TRUE),]
   write.table(results, file = output_file, sep = "\t")
-} else {
-  patterns <- GetPatterns(conditions)
-  eename <- rownames(patterns)[which(rowSums(patterns) == nc)]
-  stopifnot(length(eename) == 1)
-
-  MultiOut <- NULL
-  MultiOut <- EBMultiTest(Data = DataMat, NgVector = ngvector, Conditions = conditions, AllParti = patterns, sizeFactors = Sizes, maxround = 5)
-  stopifnot(!is.null(MultiOut))
-
-  MultiPP <- GetMultiPP(MultiOut)
-
-  PP <- as.data.frame(MultiPP$PP)
-  pos <- which(names(PP) == eename)
-  probs <- rowSums(PP[,-pos])
-
-  results <- cbind(PP, MultiPP$MAP[rownames(PP)], probs)
-  colnames(results) <- c(colnames(PP), "MAP", "PPDE")
-  ord <- order(results[,"PPDE"], decreasing = TRUE)
-  results <- results[ord,]
-  write.table(results, file = output_file, sep = "\t")
-
-  write.table(MultiPP$Patterns, file = paste(output_file, ".pattern", sep = ""), sep = "\t")
-
-  MultiFC <- GetMultiFC(MultiOut)
-  write.table(MultiFC$CondMeans[ord,], file = paste(output_file, ".condmeans", sep = ""), sep = "\t")
 }
+
 write.table(NormMat, file = norm_out_file, sep = "\t")

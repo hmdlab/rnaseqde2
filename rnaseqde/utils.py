@@ -88,10 +88,19 @@ def dictbind(src: dict, dist: dict, binding: dict):
     return(dict_)
 
 
-def dictfilter(src: dict, keys: list):
-    dict_ = {}
-    for k in keys:
-        dict_[k] = src[k]
+def dictfilter(src: dict, include=None, exclude=None):
+    if include and exclude:
+        raise Exception('Include and exclude keys were specified at the same time.')
+
+    if include:
+        dict_ = {}
+        for k in include:
+            dict_[k] = src[k]
+
+    if exclude:
+        dict_ = deepcopy(src)
+        for k in exclude:
+            del dict_[k]
 
     return(dict_)
 
@@ -142,6 +151,19 @@ def gathered(list_dict: List[dict], key):
     for ld in list_dict:
         list_.append(ld[key])
     return list_
+
+
+# NOTE: In develop, set stdout is True
+def write_proc_log(proc, output_dir, stdout=True):
+    with open(os.path.join(output_dir, 'stderr.log'), 'w') as f:
+        f.write(proc.stderr.decode())
+
+    with open(os.path.join(output_dir, 'stdout.log'), 'w') as f:
+        f.write(proc.stdout.decode())
+
+    if stdout:
+        sys.stdout.write(proc.stdout.decode())
+        sys.stdout.write(proc.stderr.decode())
 
 
 def basename_replaced_ext(ext_target, ext_replacement, input):
