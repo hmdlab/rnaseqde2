@@ -10,8 +10,8 @@ Options:
   --level <TYPE>               : Analysis level (transcript/gene)
   --output-dir <PATH>          : Output directory [default: .]
   <count-mat-tsv>              : Count matrix file
-  <n1>                         : N replicates of Group 1
-  <n2>                         : N replicates of Group 2
+  <n_rep1>                     : N replicates of Group 1
+  <n_rep2>                     : N replicates of Group 2
 
 ' -> doc
 
@@ -23,9 +23,10 @@ argv <- docopt(doc)
 
 ngvector_file <- argv$`ngvector`
 data_matrix_file <- argv$`count-mat-tsv`
-output_dir <- argv$`output_dir`
+output_dir <- argv$`output-dir`
 output_file <- file.path(output_dir, "results.tsv")
 norm_out_file <- paste0(output_file, ".normalized_data_matrix")
+
 
 # Requires
 library(EBSeq)
@@ -33,7 +34,7 @@ library(EBSeq)
 
 # CHANGE: Fixed length args
 nc <- 2
-num_reps <- as.numeric(c(argv$n1, argv$n2))
+num_reps <- as.numeric(c(argv$n_rep1, argv$n_rep2))
 
 # Reading in count data & test
 DataMat <- data.matrix(read.table(data_matrix_file))

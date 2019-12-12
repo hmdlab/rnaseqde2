@@ -31,7 +31,6 @@ Supported annotations:
     gencode
     gencode_basic
     gencode_refeseq
-    refeseq
 
 """
 
@@ -66,6 +65,7 @@ logger.addHandler(handler)
 
 
 def _opt_validated(opt):
+    # TODO: Generate Schema object from config files
     schema = Schema({
         '--workflow': Or(
             'fullset',
@@ -82,7 +82,6 @@ def _opt_validated(opt):
             'gencode',
             'gencode_basic',
             'gencode_refeseq',
-            'refeseq'
             ),
         '--dry-run': bool,
         '<sample_sheet>': str

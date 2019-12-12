@@ -47,8 +47,7 @@ class DeBallgownTask(CommandLineTask):
         outputs_ = super().inputs
 
         for v in ['gene', 'transcript']:
-            outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, '_results.tsv')
-            outputs_['--' + v + '-de-tsv'] = os.path.join(self.output_dir, v, '_results_de.tsv')
+            outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, 'results.tsv')
 
         return outputs_
 

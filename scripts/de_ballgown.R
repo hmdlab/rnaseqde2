@@ -85,5 +85,8 @@ results_transcripts <- arrange(results_transcripts, pval)
 results_genes <- arrange(results_genes, pval)
 
 ## Write results to TSV
-write_tsv(results_transcripts, path = file.path(output_dir, "transcripts_results.csv"), col_names = TRUE)
-write_tsv(results_genes, path = file.path(output_dir, "genes_results.csv"), col_names = TRUE)
+dir.create(file.path(output_dir, 'transcript'))
+write_tsv(results_transcripts, path = file.path(output_dir, 'transcript', 'results.tsv'), col_names = TRUE)
+
+dir.create(file.path(output_dir, 'gene'))
+write_tsv(results_genes, path = file.path(output_dir, 'gene', 'results.tsv'), col_names = TRUE)

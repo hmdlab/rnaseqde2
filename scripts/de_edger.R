@@ -20,7 +20,7 @@ options(stringAsFactors = FALSE)
 library(docopt)
 argv <- docopt(doc)
 sample_sheet_path <- argv$`sample-sheet`
-output_dir <- argv$`output-dri`
+output_dir <- argv$`output-dir`
 level <- argv$level
 count_mat_path <- argv$`count-mat-tsv`
 
@@ -55,7 +55,7 @@ extract_degs <- function(expressions, groups, comparisions, from){
     dge_filt <- estimateCommonDisp(dge_filt)
     dge_filt <- estimateTagwiseDisp(dge_filt)
   }
-  dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')  %>% write_tsv_from(paste0('expressions_cpm', '.tsv'), from)
+  dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID') %>% write_tsv_from('expressions_cpm.tsv', from)
   # do exact test (single factor - pairwise)
 
   expressions_cpm <- dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')
@@ -83,7 +83,7 @@ min_replicates <- function (groups) {
 }
 
 write_tsv_from <- function (x, path, from) {
-  path <- paste(from, path, sep = '/')
+  path <- file.path(from, path)
   x %>% write_tsv(path = path, col_names = TRUE)
 }
 
