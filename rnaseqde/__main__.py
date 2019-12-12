@@ -7,6 +7,7 @@ Usage:
     rnaseqde [options] <sample_sheet>
 
 Options:
+    --workflow <TYPE>    : Workflow [default: fullset]
     --layout <TYPE>      : Library layout (sr/pe) [default: sr]
     --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
     --reference <NAME>   : Reference name [default: grch38]
@@ -15,8 +16,15 @@ Options:
     <sample_sheet>       : Tab-delimited text that contained the following columns:
                            sample; fastq1[fastq2]; group
 
+Workflows:
+    fullset (default)
+    tophat2-cuffdiff
+    star-rsem-ebseq
+    hisat2-stringtie-ballgown
+    kallisto-sleuth
+
 Supported references:
-    grch38
+    grch38 (default)
 
 Supported annotations:
     all (default)
@@ -28,38 +36,21 @@ Supported annotations:
 """
 
 import sys
-import logging
-from copy import deepcopy
 
 from schema import Schema, Or, SchemaError
 from docopt import docopt
 
-import rnaseqde.utils as utils
 from rnaseqde.sample_sheet_manager import SampleSheetManager
-from rnaseqde.task.base import Task, DictWrapperTask
-from rnaseqde.task.end import EndTask
+from rnaseqde.workflow import (
+    fullset,
+    tophat2_cuffdiff,
+    star_rsem_ebseq,
+    hisat2_stringtie_ballgown,
+    kallisto_sleuth
+)
+import rnaseqde.utils as utils
 
-from rnaseqde.task.align_star import AlignStarTask
-from rnaseqde.task.quant_rsem import QuantRsemTask
-from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
-from rnaseqde.task.de_ebseq import DeEbseqTask
-
-from rnaseqde.task.align_hisat2 import AlignHisat2Task
-from rnaseqde.task.conv_sam2bam import ConvSamToBamTask
-from rnaseqde.task.quant_stringtie import QuantStringtieTask
-from rnaseqde.task.prep_prepde import PrepPrepdeTask
-from rnaseqde.task.de_ballgown import DeBallgownTask
-
-from rnaseqde.task.align_tophat2 import AlignTophat2Task
-from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
-
-from rnaseqde.task.quant_kallisto import QuantKallistoTask
-from rnaseqde.task.de_sleuth import DeSleuthTask
-
-from rnaseqde.task.conv_any2raw_tximport import ConvAny2RawTximportTask
-from rnaseqde.task.de_edger import DeEdgerTask
-
-
+import logging
 from logging import (
     getLogger,
     StreamHandler,
@@ -76,10 +67,23 @@ logger.addHandler(handler)
 
 def _opt_validated(opt):
     schema = Schema({
+        '--workflow': Or(
+            'fullset',
+            'tophat2-cuffdiff',
+            'star-rsem-ebseq',
+            'hisat2-stringtie-ballgown',
+            'kallisto-sleuth'
+            ),
         '--layout': Or('sr', 'pe'),
         '--strandness': Or('none', 'rf', 'fr'),
-        '--reference': Or(None, str),
-        '--annotation': Or(None, str),
+        '--reference': Or(None, 'grch38'),
+        '--annotation': Or(
+            None,
+            'gencode',
+            'gencode_basic',
+            'gencode_refeseq',
+            'refeseq'
+            ),
         '--dry-run': bool,
         '<sample_sheet>': str
     })
@@ -88,7 +92,8 @@ def _opt_validated(opt):
         opt = schema.validate(opt)
         return opt
     except SchemaError as e:
-        logger.exception(e)
+        sys.stderr.write("Invalid options were specified:\n")
+        sys.stderr.write(str(e))
         sys.exit(1)
 
 
@@ -98,70 +103,21 @@ def main():
         SampleSheetManager(
             opt['<sample_sheet>'],
             (opt['--layout'] == 'pe')).to_dict()
-        )
-
-    Task.dry_run = opt['--dry-run']
+    )
 
     assets = utils.load_conf('config/assets.yml')
-    annotations = assets[opt['--reference']]
-    if opt['--annotation']:
-        annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
-    # Queue alignment tasks
-    for k, v in annotations.items():
-        opt_ = deepcopy(opt)
-        opt_.update(v)
-        beginning = DictWrapperTask(opt_, output_dir=k)
-        AlignStarTask([beginning])
-        AlignHisat2Task([beginning])
-        AlignTophat2Task([beginning])
-        QuantKallistoTask([beginning])
+    workflows = {
+        'fullset': fullset,
+        'tophat2-cuffdiff': tophat2_cuffdiff,
+        'star-rsem-ebseq': star_rsem_ebseq,
+        'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
+        'kallisto-sleuth': kallisto_sleuth
+    }
 
-    for t in AlignHisat2Task.instances:
-        ConvSamToBamTask([t])
-
-    align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
-
-    # Queue quantification tasks
-    for at in align_tasks:
-        for t in at.instances:
-            QuantStringtieTask([t])
-            DeCuffdiffTask([t])
-
-    for t in QuantStringtieTask.instances:
-        PrepPrepdeTask([t])
-
-    for t in AlignStarTask.instances:
-        QuantRsemTask([t])
-
-    for t in QuantRsemTask.instances:
-        ConvRsemToEbseqMatrixTask([t])
-
-    quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
-
-    for qt in quant_tasks:
-        for t in qt.instances:
-            ConvAny2RawTximportTask([t])
-
-    # Queue DE tasks
-    for t in ConvRsemToEbseqMatrixTask.instances:
-        DeEbseqTask([t])
-
-    for t in QuantStringtieTask.instances:
-        DeBallgownTask([t])
-
-    for t in QuantKallistoTask.instances:
-        DeSleuthTask([t])
-
-    for t in ConvAny2RawTximportTask.instances:
-        DeEdgerTask([t])
-
-    EndTask(
-        required_tasks=Task.instances,
-        excepted_tasks=[beginning]
-        )
-
-    Task.run_all_tasks()
+    wf = workflows[opt['--workflow']]
+    wf.run(opt, assets)
+    sys.exit(0)
 
 
 if __name__ == '__main__':

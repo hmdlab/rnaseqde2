@@ -1,0 +1,43 @@
+#! /usr/bin/env python3
+
+from copy import deepcopy
+
+from rnaseqde.task.base import Task, DictWrapperTask
+from rnaseqde.task.end import EndTask
+
+from rnaseqde.task.align_star import AlignStarTask
+from rnaseqde.task.quant_rsem import QuantRsemTask
+from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
+from rnaseqde.task.de_ebseq import DeEbseqTask
+
+
+def run(opt, assets):
+    Task.dry_run = opt['--dry-run']
+
+    annotations = assets[opt['--reference']]
+    if opt['--annotation']:
+        annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
+
+    # Queue alignment tasks
+    for k, v in annotations.items():
+        opt_ = deepcopy(opt)
+        opt_.update(v)
+        beginning = DictWrapperTask(opt_, output_dir=k)
+        AlignStarTask([beginning])
+
+    for t in AlignStarTask.instances:
+        QuantRsemTask([t])
+
+    for t in QuantRsemTask.instances:
+        ConvRsemToEbseqMatrixTask([t])
+
+    # Queue DE tasks
+    for t in ConvRsemToEbseqMatrixTask.instances:
+        DeEbseqTask([t])
+
+    EndTask(
+        required_tasks=Task.instances,
+        excepted_tasks=[beginning]
+    )
+
+    Task.run_all_tasks()
