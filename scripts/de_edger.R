@@ -27,11 +27,8 @@ count_mat_path <- argv$`count-mat-tsv`
 output_dir <- file.path(output_dir, level)
 
 # Requires
-library(limma)
 library(edgeR)
-library(data.table)
 library(tidyverse)
-library(readr)
 
 
 # Function definitions
@@ -55,8 +52,8 @@ extract_degs <- function(expressions, groups, comparisions, from){
     dge_filt <- estimateCommonDisp(dge_filt)
     dge_filt <- estimateTagwiseDisp(dge_filt)
   }
+
   dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID') %>% write_tsv_from('expressions_cpm.tsv', from)
-  # do exact test (single factor - pairwise)
 
   expressions_cpm <- dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')
 
@@ -90,24 +87,21 @@ write_tsv_from <- function (x, path, from) {
 
 # Main
 ## Load data
-expressions <- fread(count_mat_path, header = TRUE, sep = '\t', drop = 1) %>% as.matrix
-rownames(expressions) <- (fread(count_mat_path, header = TRUE, sep = '\t', select = 1) %>% as.matrix)[, 1]
-
-sample_sheet <- fread(sample_sheet_path, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
+expressions <- read.table(count_mat_path, header = TRUE, sep = '\t', row.names = 1) %>% as.matrix
+sample_sheet <- read.table(sample_sheet_path, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
 groups <- sample_sheet$group
 comparisions <- expand.grid(sample_1 = unique(groups), sample_2 = unique(groups), stringsAsFactors = FALSE)
 
 ## Create pair-wise comparisions
 ## HACK: To Simple
-keep <- as.numeric(factor(comparisions$sample_1,  levels = unique(groups))) < as.numeric(factor(comparisions$sample_2,  levels = unique(groups)))
+keep <- as.numeric(factor(comparisions$sample_1, levels = unique(groups))) < as.numeric(factor(comparisions$sample_2,  levels = unique(groups)))
 comparisions <- comparisions[keep, ]
 
 ## Perform exact test
+dir.create(file.path(output_dir), showWarnings = FALSE, recursive = TRUE)
 degs <- extract_degs(expressions, groups, comparisions, output_dir)
 results_et <- degs[[1]]
 expressions_cpm <- degs[[2]]
-
-dir.create(file.path(output_dir), showWarnings = FALSE, recursive = TRUE)
 
 ## Merge result tables
 table_merged <- data.frame()

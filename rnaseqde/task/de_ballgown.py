@@ -13,16 +13,9 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class DeBallgownTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
@@ -47,7 +40,8 @@ class DeBallgownTask(CommandLineTask):
         outputs_ = super().inputs
 
         for v in ['gene', 'transcript']:
-            outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, 'results.tsv')
+            key_ = "--{}-tsv".format(v)
+            outputs_[key_] = os.path.join(self.output_dir, v, 'results.tsv')
 
         return outputs_
 
@@ -68,11 +62,8 @@ def main():
 
     """
 
-    task = DeBallgownTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    task.output_dir = opt_runtime['--output-dir']
-    os.makedirs(task.output_dir, exist_ok=True)
+    task = DeBallgownTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, ['--output-dir', '--sample-sheet'])
     opt['--gtf'] = opt_runtime['--gtf'] if opt_runtime['--gtf'] else "'#'"
@@ -88,8 +79,9 @@ def main():
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
+        os.makedirs(task.output_dir, exist_ok=True)
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        utils.write_proc_log(proc, task.output_dir)
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

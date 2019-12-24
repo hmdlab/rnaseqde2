@@ -7,13 +7,13 @@ from rnaseqde.task.end import EndTask
 
 from rnaseqde.task.align_star import AlignStarTask
 from rnaseqde.task.quant_rsem import QuantRsemTask
-from rnaseqde.task.conv_rsem2ebseq_mat import ConvRsemToEbseqMatrixTask
+from rnaseqde.task.conv_rsem2mat import ConvRsemToMatrixTask
 from rnaseqde.task.de_ebseq import DeEbseqTask
 
 from rnaseqde.task.align_hisat2 import AlignHisat2Task
 from rnaseqde.task.conv_sam2bam import ConvSamToBamTask
 from rnaseqde.task.quant_stringtie import QuantStringtieTask
-from rnaseqde.task.prep_prepde import PrepPrepdeTask
+from rnaseqde.task.conv_stringtie2raw import ConvStringtieToRawTask
 from rnaseqde.task.de_ballgown import DeBallgownTask
 
 from rnaseqde.task.align_tophat2 import AlignTophat2Task
@@ -22,7 +22,8 @@ from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
 from rnaseqde.task.quant_kallisto import QuantKallistoTask
 from rnaseqde.task.de_sleuth import DeSleuthTask
 
-from rnaseqde.task.conv_any2raw_tximport import ConvAny2RawTximportTask
+from rnaseqde.task.conv_any2raw import ConvAnyToRawTask
+from rnaseqde.task.conv_cuffdiff2raw import ConvCuffdiffToRawTask
 from rnaseqde.task.de_edger import DeEdgerTask
 
 
@@ -55,22 +56,25 @@ def run(opt, assets):
             DeCuffdiffTask([t])
 
     for t in QuantStringtieTask.instances:
-        PrepPrepdeTask([t])
+        ConvStringtieToRawTask([t])
 
     for t in AlignStarTask.instances:
         QuantRsemTask([t])
 
     for t in QuantRsemTask.instances:
-        ConvRsemToEbseqMatrixTask([t])
+        ConvRsemToMatrixTask([t])
 
     quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
 
     for qt in quant_tasks:
         for t in qt.instances:
-            ConvAny2RawTximportTask([t])
+            if isinstance(t, DeCuffdiffTask):
+                ConvCuffdiffToRawTask([t])
+                continue
+            ConvAnyToRawTask([t])
 
     # Queue DE tasks
-    for t in ConvRsemToEbseqMatrixTask.instances:
+    for t in ConvRsemToMatrixTask.instances:
         DeEbseqTask([t])
 
     for t in QuantStringtieTask.instances:
@@ -79,9 +83,10 @@ def run(opt, assets):
     for t in QuantKallistoTask.instances:
         DeSleuthTask([t])
 
-    for t in ConvAny2RawTximportTask.instances:
+    for t in ConvAnyToRawTask.instances:
         DeEdgerTask([t])
 
+    # Check outputs of each task
     EndTask(
         required_tasks=Task.instances,
         excepted_tasks=[beginning]

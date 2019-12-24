@@ -12,18 +12,11 @@ import subprocess
 from textwrap import dedent
 
 import rnaseqde.utils as utils
-from rnaseqde.task.base import CommandLineTask
-
-from logging import getLogger
+from rnaseqde.task.base import ArrayTask
 
 
-logger = getLogger(__name__)
-
-
-class AlignStarTask(CommandLineTask):
+class AlignStarTask(ArrayTask):
     instances = []
-    in_array = True
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
@@ -43,14 +36,13 @@ class AlignStarTask(CommandLineTask):
 
         return inputs_
 
-    def output_prefix(self, input):
+    # NOTE: Output prefix
+    def output_subdir(self, input):
         prefix_ = os.path.join(
             self.output_dir,
             utils.basename_replaced_ext('.fastq.gz', '', input),
             ''
             )
-
-        os.makedirs(prefix_, exist_ok=True)
 
         return prefix_
 
@@ -72,17 +64,16 @@ class AlignStarTask(CommandLineTask):
         }
 
         for k, v in binding.items():
-            dict_[k] = [os.path.join(self.output_prefix(s), v) for s in samples]
+            dict_[k] = [os.path.join(self.output_subdir(s), v) for s in samples]
 
         return dict_
 
     @property
-    # TBD: Should implement on the super class or not
-    def _qsub_threads(self):
-        d = 1 if self.inputs['--layout'] == 'sr' else 2
-        n_tasks = len(self.inputs['--fastq']) / d
-        step = 1
-        return "1-{}:{}".format(str(int(n_tasks)), step)
+    def n_tasks(self):
+        if self.inputs['--layout'] == 'pe':
+            return int(self._n_tasks() / 2)
+
+        return self._n_tasks()
 
 
 def main():
@@ -105,12 +96,11 @@ def main():
 
     """
 
-    task = AlignStarTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
-
-    task.output_dir = opt_runtime['--output-dir']
+    task = AlignStarTask(
+        output_dir=opt_runtime['--output-dir'],
+        conf_path=opt_runtime['--conf']
+    )
 
     if opt_runtime['--layout'] == 'sr':
         fastq1s = task.scattered(opt_runtime['--fastq'])
@@ -134,11 +124,11 @@ def main():
         '--sjdbGTFfile': '--gtf'
     }
 
-    opt = utils.dictbind(opt_static, opt_runtime, binding)
+    opt = utils.dictbind(task.conf, opt_runtime, binding)
 
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['--readFilesIn'] = ' '.join((f1, f2)).strip()
-        opt['--outFileNamePrefix'] = task.output_prefix(s)
+        opt['--outFileNamePrefix'] = task.output_subdir(s)
 
         cmd = "{base} {opt}".format(
             base='STAR',
@@ -148,12 +138,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
+            os.makedirs(task.output_subdir(s), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(task.output_prefix(s), 'stderr.log'), 'w') as f:
-                f.write(proc.stderr.decode())
-
-            with open(os.path.join(task.output_prefix(s), 'stdout.log'), 'w') as f:
-                f.write(proc.stdout.decode())
+            utils.puts_captured_output(proc, task.output_subdir(s))
 
 
 if __name__ == '__main__':

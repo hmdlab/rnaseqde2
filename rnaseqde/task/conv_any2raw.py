@@ -13,30 +13,23 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
 
-
-logger = getLogger(__name__)
-
-
-class ConvAny2RawTximportTask(CommandLineTask):
+class ConvAnyToRawTask(CommandLineTask):
     instances = []
-    script = utils.actpath_to_sympath(__file__)
-    in_parallel = False
 
     @property
     def inputs(self):
         inputs_ = {'--output-dir': self.output_dir}
 
+        binding = {
+                '--gtf': '--gtf',
+                '--dry-run': '--dry-run'
+                }
+
+        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+
         def _opt(upper_class):
             n = upper_class.__class__.__name__
-
-            if n == 'DeCuffdiffTask':
-                # import pdb; pdb.set_trace()
-                return {
-                    '--type': 'cuffdiff',
-                    '--input': upper_class.outputs['--transcript-raw-tsv']
-                }
 
             if n == 'QuantKallistoTask':
                 return {
@@ -47,7 +40,7 @@ class ConvAny2RawTximportTask(CommandLineTask):
             if n == 'QuantRsemTask':
                 return {
                     '--type': 'rsem',
-                    '--input': upper_class.outputs['--gene-tsv']
+                    '--input': upper_class.outputs['--transcript-tsv']
                 }
 
             if n == 'QuantStringtieTask':
@@ -64,8 +57,9 @@ class ConvAny2RawTximportTask(CommandLineTask):
     def outputs(self):
         outputs_ = super().inputs
 
-        for v in ['transcript']:
-            outputs_['--' + v + '-mat-tsv'] = os.path.join(self.output_dir, v, 'count_matrix.tsv')
+        for v in ['gene', 'transcript']:
+            key_ = "--{}-mat-tsv".format(v)
+            outputs_[key_] = os.path.join(self.output_dir, "count_matrix_{}.tsv".format(v))
 
         return outputs_
 
@@ -78,27 +72,24 @@ def main():
         conv_any2raw_tximport [options] --type <TYPE> --input <PATH>...
 
     Options:
-        --type <TYPE>        : Input type (cuffdiff/kallisto/rsem/stringtie)
-        --level <TYPE>       : Analysis level (gene/transcript) [default: transcript]
+        --gtf <PATH>         : GTF annotation file
+        --type <TYPE>        : Input type (kallisto/rsem/stringtie)
         --output-dir <PATH>  : Output directory [default: .]
         --dry-run            : Dry-run [default: False]
-        --input <PATH>...    : Output(s) of quantifier
+        --input <PATH>...    : Output(s) of quantifier;
+                               (K) abundance.h5, (R) quantified.isoforms.results, (S) t_data.ctab
 
     """
 
-    task = ConvAny2RawTximportTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
+    task = ConvAnyToRawTask(output_dir=opt_runtime['--output-dir'])
 
-    task.output_dir = opt_runtime['--output-dir']
-    os.makedirs(task.output_dir, exist_ok=True)
-
-    opt = utils.dictfilter(opt_runtime, ['--type', '--level', '--output-dir'])
+    opt = utils.dictfilter(opt_runtime, ['--gtf', '--type', '--output-dir'])
     args = [' '.join(opt_runtime['--input'])]
 
     cmd = "{base} {script} {opt} {args}".format(
         base='Rscript',
-        script=utils.from_root('scripts/conv_any2raw_tximport.R'),
+        script=utils.from_root('scripts/conv_any2raw.R'),
         opt=utils.optdict_to_str(opt),
         args=' '.join(args)
     )
@@ -106,8 +97,9 @@ def main():
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
+        os.makedirs(task.output_dir, exist_ok=True)
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        utils.write_proc_log(proc, task.output_dir)
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

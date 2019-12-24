@@ -9,31 +9,22 @@ import sys
 import os
 import subprocess
 from textwrap import dedent
+from collections import OrderedDict
 
 import rnaseqde.utils as utils
-from rnaseqde.task.base import CommandLineTask
-
-from logging import getLogger
+from rnaseqde.task.base import ArrayTask
 
 
-logger = getLogger(__name__)
-
-
-class ConvSamToBamTask(CommandLineTask):
+class ConvSamToBamTask(ArrayTask):
     instances = []
-    in_array = True
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = OrderedDict({'--output-dir': self.output_dir})
 
-        binding = {
-                '--dry-run': '--dry-run',
-                '--sam': '--sam'
-                }
+        include_ = ['--dry-run', '--sam']
 
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update(utils.dictfilter(super().inputs, include_))
 
         return inputs_
 
@@ -45,19 +36,12 @@ class ConvSamToBamTask(CommandLineTask):
 
         return subdir_
 
-    def output(self, input):
-        os.makedirs(self.output_subdir(input), exist_ok=True)
-        output_ = os.path.join(
-            self.output_subdir(input),
-            utils.basename_replaced_ext('.sam', '.bam', input)
-            )
-
-        return output_
-
     @property
     def outputs(self):
         dict_ = super().inputs
-        dict_['--bam'] = [self.output(input) for input in self.inputs['--sam']]
+        dict_['--bam'] = [os.path.join(
+            self.output_subdir(input), utils.basename_replaced_ext('.sam', '.bam', input)
+            ) for input in self.inputs['--sam']]
 
         return dict_
 
@@ -76,28 +60,29 @@ def main():
 
     """
 
-    task = ConvSamToBamTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-
-    task.output_dir = opt_runtime['--output-dir']
+    task = ConvSamToBamTask(output_dir=opt_runtime['--output-dir'])
 
     opt = opt_runtime
 
     sams = task.scattered(opt['--sam'])
 
+    print(sams)
+
     for s in sams:
         cmd = "samtools sort -@ 8 {sam} -o {bam}".format(
             sam=s,
-            bam=task.output(s)
+            bam=os.path.join(task.output_subdir(s), utils.basename_replaced_ext('.sam', '.bam', s))
             )
 
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            os.makedirs(task.output_subdir(s), exist_ok=True)
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            utils.puts_captured_output(proc, task.output_subdir(s))
 
-        # TODO: Remove SAM file(s)
+        # NOTE: Remove SAM file(s)
         # cmd = "rm {sam}".format(sam=s)
 
         # sys.stderr.write("Command: {}\n".format(cmd))

@@ -14,11 +14,6 @@ import itertools
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class DeEdgerTask(CommandLineTask):
     instances = []
@@ -74,21 +69,17 @@ def main():
 
     """
 
-    task = DeEdgerTask()
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-
-    task.output_dir = opt_runtime['--output-dir']
+    task = DeEdgerTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, exclude=['--count-mat-tsv', '--dry-run'])
 
     args = [None] * 1
     args[0] = opt_runtime['--count-mat-tsv']
 
-    # TODO: Append gene-level analysis
-    for v in ['transcript']:
+    for v in ['gene', 'transcript']:
         output_dir_ = os.path.join(task.output_dir, v)
-        os.makedirs(output_dir_, exist_ok=True)
-
+        opt['--output-dir'] = output_dir_
         opt['--level'] = v
 
         cmd = "{base} {script} {opt} {args}".format(
@@ -98,11 +89,12 @@ def main():
             args=' '.join(args)
         )
 
-    sys.stderr.write("Command: {}\n".format(cmd))
+        sys.stderr.write("Command: {}\n".format(cmd))
 
-    if not opt_runtime['--dry-run']:
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        utils.write_proc_log(proc, task.output_dir)
+        if not opt_runtime['--dry-run']:
+            os.makedirs(output_dir_, exist_ok=True)
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            utils.puts_captured_output(proc, output_dir_)
 
 
 if __name__ == '__main__':

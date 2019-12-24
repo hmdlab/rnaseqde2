@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
 """
-RNA-Seq DE analysis pipeline using Universal Grid Engine on NIG super computer
+RNA-Seq DE analysis pipeline using Universal Grid Engine on NIG supercomputer
 
 Usage:
     rnaseqde [options] <sample_sheet>

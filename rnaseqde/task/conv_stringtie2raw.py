@@ -13,13 +13,8 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
 
-
-logger = getLogger(__name__)
-
-
-class PrepPrepdeTask(CommandLineTask):
+class ConvStringtieToRawTask(CommandLineTask):
     instances = []
     in_array = False
     script = utils.actpath_to_sympath(__file__)
@@ -66,7 +61,7 @@ def main():
     Wrapper for UGE: Generate count matrix using PrepDE.py
 
     Usage:
-        quant_stringtie [options] --sample <STR>... --quantified-gtf <PATH>...
+        conv_stringtie2raw [options] --sample <STR>... --quantified-gtf <PATH>...
 
     Options:
         --sample <STR>...           : Sample(s)
@@ -76,7 +71,7 @@ def main():
 
     """
 
-    task = PrepPrepdeTask()
+    task = ConvStringtieToRawTask()
     opt_runtime = utils.docmopt(dedent(main.__doc__))
 
     task.output_dir = opt_runtime['--output-dir']

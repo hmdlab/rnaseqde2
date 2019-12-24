@@ -1,7 +1,0 @@
-sample	fastq1	fastq2	group
-CTRL1	tests/datasets/sample_01_1.fastq.gz	tests/datasets/sample_01_2.fastq.gz	CTRL
-CTRL2	tests/datasets/sample_02_1.fastq.gz	tests/datasets/sample_02_2.fastq.gz	CTRL
-CTRL3	tests/datasets/sample_03_1.fastq.gz	tests/datasets/sample_03_2.fastq.gz	CTRL
-CASE1	tests/datasets/sample_04_1.fastq.gz	tests/datasets/sample_04_2.fastq.gz	CASE
-CASE2	tests/datasets/sample_05_1.fastq.gz	tests/datasets/sample_05_2.fastq.gz	CASE
-CASE3	tests/datasets/sample_06_1.fastq.gz	tests/datasets/sample_06_2.fastq.gz	CASE

@@ -12,18 +12,11 @@ import subprocess
 from textwrap import dedent
 
 import rnaseqde.utils as utils
-from rnaseqde.task.base import CommandLineTask
-
-from logging import getLogger
+from rnaseqde.task.base import ArrayTask
 
 
-logger = getLogger(__name__)
-
-
-class QuantRsemTask(CommandLineTask):
+class QuantRsemTask(ArrayTask):
     instances = []
-    in_array = True
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
@@ -50,7 +43,6 @@ class QuantRsemTask(CommandLineTask):
         return subdir_
 
     def output_prefix(self, input):
-        os.makedirs(self.output_subdir(input), exist_ok=True)
         prefix_ = os.path.join(self.output_subdir(input), 'quantified')
 
         return prefix_
@@ -99,14 +91,14 @@ def main():
 
     """
 
-    task = QuantRsemTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
+    task = QuantRsemTask(
+        output_dir=opt_runtime['--output-dir'],
+        conf_path=opt_runtime['--conf']
+    )
 
-    task.output_dir = opt_runtime['--output-dir']
+    opt = task.conf
 
-    opt = opt_static
     opt_ = {
         'sr': {'--paired-end': False},
         'pe': {'--paired-end': True}
@@ -138,12 +130,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
+            os.makedirs(task.output_subdir(b), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(task.output_subdir(b), 'stderr.log'), 'w') as f:
-                f.write(proc.stderr.decode())
-
-            with open(os.path.join(task.output_subdir(b), 'stdout.log'), 'w') as f:
-                f.write(proc.stdout.decode())
+            utils.puts_captured_output(proc)
 
 
 if __name__ == '__main__':

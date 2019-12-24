@@ -1,0 +1,13 @@
+# NOTE: To change for read length [default: 100 -> 50]
+--mate-inner-dist: 50
+--mate-std-dev: 25
+--b2-very-sensitive: false
+--coverage-search: true
+--read-mismatches: 18
+--read-gap-length: 25
+--read-edit-dist: 25
+--read-realign-edit-dist: false
+--max-insertion-length: 24
+--max-deletion-length : 24
+--max-multihits : 100
+--num-threads : 8

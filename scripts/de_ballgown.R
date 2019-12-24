@@ -28,12 +28,11 @@ ctab <- argv$ctab
 # Requires
 library(ballgown)
 library(genefilter)
-library(dplyr)
-library(readr)
+library(tidyverse)
 
 
 ## Reading in phenotype data
-pheno_data <- read.table(sample_sheet_path, header = TRUE, stringsAsFactors = FALSE)
+pheno_data <- read.table(sample_sheet_path, header = TRUE , sep = '\t')
 data_files <- dirname(ctab)
 names(data_files) <- basename(data_files)
 
@@ -69,7 +68,7 @@ if (!argv$nofilter) {
 }
 
 ## Detect DEs at transcript-level
-results_transcripts <-  stattest(bg_filt, feature='transcript', covariate='group', getFC = TRUE, meas='FPKM')
+results_transcripts <- stattest(bg_filt, feature='transcript', covariate='group', getFC = TRUE, meas='FPKM')
 
 ## Detect DEs at gene-level
 results_genes <- stattest(bg_filt, feature='gene', covariate='group', getFC=TRUE, meas='FPKM')
@@ -86,7 +85,7 @@ results_genes <- arrange(results_genes, pval)
 
 ## Write results to TSV
 dir.create(file.path(output_dir, 'transcript'))
-write_tsv(results_transcripts, path = file.path(output_dir, 'transcript', 'results.tsv'), col_names = TRUE)
+write_tsv(results_transcripts, path = file.path(output_dir, 'result_transcript.tsv'), col_names = TRUE)
 
 dir.create(file.path(output_dir, 'gene'))
-write_tsv(results_genes, path = file.path(output_dir, 'gene', 'results.tsv'), col_names = TRUE)
+write_tsv(results_genes, path = file.path(output_dir, 'result_gene.tsv'), col_names = TRUE)

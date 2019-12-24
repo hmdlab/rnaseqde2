@@ -18,11 +18,6 @@ from docopt import docopt
 
 import yaml
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 def root_path():
     abspath_actual = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -53,7 +48,7 @@ def load_conf(relpath, strict=True):
             dict_ = yaml.load(f)
     except FileNotFoundError as e:
         if strict:
-            logger.exception(e)
+            sys.stderr.write("{}".format(str(e)))
             sys.exit()
 
         dict_ = {}
@@ -77,7 +72,7 @@ def docmopt(doc, **kwargs):
             'options_first': True
         })
 
-    return docopt(doc, **kwargs)
+    return docopt(doc, help=True, **kwargs)
 
 
 def dictbind(src: dict, dist: dict, binding: dict):
@@ -89,16 +84,17 @@ def dictbind(src: dict, dist: dict, binding: dict):
 
 
 def dictfilter(src: dict, include=None, exclude=None):
-    if include and exclude:
-        raise Exception('Include and exclude keys were specified at the same time.')
-
     if include:
-        dict_ = {}
+        dict_ = OrderedDict()
         for k in include:
             dict_[k] = src[k]
 
     if exclude:
-        dict_ = deepcopy(src)
+        try:
+            dict_
+        except NameError:
+            dict_ = OrderedDict(deepcopy(src))
+
         for k in exclude:
             del dict_[k]
 
@@ -153,17 +149,25 @@ def gathered(list_dict: List[dict], key):
     return list_
 
 
-# NOTE: In develop, set stdout is True
-def write_proc_log(proc, output_dir, stdout=True):
+# NOTE: Change bypass flag
+def puts_captured_output(proc, output_dir='.', bypass=True):
     with open(os.path.join(output_dir, 'stderr.log'), 'w') as f:
         f.write(proc.stderr.decode())
 
     with open(os.path.join(output_dir, 'stdout.log'), 'w') as f:
         f.write(proc.stdout.decode())
 
-    if stdout:
+    if bypass:
         sys.stdout.write(proc.stdout.decode())
         sys.stdout.write(proc.stderr.decode())
+
+
+def replaced_ext(ext_target, ext_replacement, input):
+    pattern = re.compile(r"{}$".format(ext_target))
+    replaced = re.sub(pattern, '', input)
+    replaced += ext_replacement
+
+    return replaced
 
 
 def basename_replaced_ext(ext_target, ext_replacement, input):

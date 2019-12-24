@@ -13,11 +13,6 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class DeSleuthTask(CommandLineTask):
     instances = []
@@ -64,12 +59,8 @@ def main():
 
     """
 
-    task = DeSleuthTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    task.output_dir = opt_runtime['--output-dir']
-
-    os.makedirs(task.output_dir, exist_ok=True)
+    task = DeSleuthTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, ['--gtf', '--sample-sheet', '--output-dir'])
     args = [' '.join(opt_runtime['--h5'])]
@@ -84,8 +75,9 @@ def main():
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
+        os.makedirs(task.output_dir, exist_ok=True)
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        utils.write_proc_log(proc, task.output_dir)
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

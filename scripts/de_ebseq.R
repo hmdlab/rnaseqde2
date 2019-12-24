@@ -1,6 +1,8 @@
 #! /usr/bin/env Rscript
 
 'Perform DE analysis using EBSeq
+  This script is modified version of rsem-for-ebseq-find-DE.R
+  https://github.com/deweylab/RSEM/blob/master/EBSeq/rsem-for-ebseq-find-DE
 
 Usage:
   rsem-for-ebseq-find-DE  [--ngvector <PATH>] --level <TYPE> [--output-dir <PATH>] <count-mat-tsv> <n_rep1> <n_rep2>
@@ -24,7 +26,7 @@ argv <- docopt(doc)
 ngvector_file <- argv$`ngvector`
 data_matrix_file <- argv$`count-mat-tsv`
 output_dir <- argv$`output-dir`
-output_file <- file.path(output_dir, "results.tsv")
+output_file <- file.path(output_dir, "result.tsv")
 norm_out_file <- paste0(output_file, ".normalized_data_matrix")
 
 

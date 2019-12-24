@@ -12,15 +12,10 @@ import subprocess
 from textwrap import dedent
 
 import rnaseqde.utils as utils
-from rnaseqde.task.base import CommandLineTask
-
-from logging import getLogger
+from rnaseqde.task.base import ArrayTask
 
 
-logger = getLogger(__name__)
-
-
-class AlignHisat2Task(CommandLineTask):
+class AlignHisat2Task(ArrayTask):
     instances = []
     in_array = True
     script = utils.actpath_to_sympath(__file__)
@@ -50,15 +45,6 @@ class AlignHisat2Task(CommandLineTask):
 
         return subdir_
 
-    def output(self, input):
-        output_dir_ = self.output_subdir(input)
-        os.makedirs(output_dir_, exist_ok=True)
-        output_ = os.path.join(
-            output_dir_,
-            'aligned.sam')
-
-        return output_
-
     @property
     def outputs(self):
         if self.inputs['--layout'] == 'sr':
@@ -66,20 +52,21 @@ class AlignHisat2Task(CommandLineTask):
         else:
             fastq1s = self.inputs['--fastq'][0::2]
 
-        samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
+        samples = self.inputs['--sample'] if self.inputs['--sample'] is not None else fastq1s
 
         outputs_ = super().inputs
-        outputs_['--sam'] = [self.output(s) for s in samples]
+        outputs_['--sam'] = [os.path.join(self.output_subdir(s), 'aligned.sam') for s in samples]
+        outputs_['--unmapped-fastq1'] = [os.path.join(self.output_subdir(s), 'unaligned.1.fastq') for s in samples]
+        outputs_['--unmapped-fastq2'] = [os.path.join(self.output_subdir(s), 'unaligned.2.fastq') for s in samples]
 
         return outputs_
 
     @property
-    # TBD: Should implement on the super class or not
-    def _qsub_threads(self):
-        d = 1 if self.inputs['--layout'] == 'sr' else 2
-        n_tasks = len(self.inputs['--fastq']) / d
-        step = 1
-        return "1-{}:{}".format(str(int(n_tasks)), step)
+    def n_tasks(self):
+        if self.inputs['--layout'] == 'pe':
+            return int(self._n_tasks() / 2)
+
+        return self._n_tasks()
 
 
 def main():
@@ -101,12 +88,11 @@ def main():
 
     """
 
-    task = AlignHisat2Task()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
-
-    task.output_dir = opt_runtime['--output-dir']
+    task = AlignHisat2Task(
+        output_dir=opt_runtime['--output-dir'],
+        conf_path=opt_runtime['--conf']
+    )
 
     if opt_runtime['--layout'] == 'sr':
         fastq1s = task.scattered(opt_runtime['--fastq'])
@@ -129,10 +115,10 @@ def main():
         '-x': '--index'
     }
 
-    opt = utils.dictbind(opt_static, opt_runtime, binding)
+    opt = utils.dictbind(task.conf, opt_runtime, binding)
     opt_ = {
         'fr': {'--rna-strandness': 'FR'},
-        'rf': {'--rna-strandness':  'RF'},
+        'rf': {'--rna-strandness': 'RF'},
         'none': {}
     }
     opt.update(opt_[opt_runtime['--strandness']])
@@ -144,10 +130,8 @@ def main():
             opt['-1'] = f1
             opt['-2'] = f2
 
-        opt['-S'] = task.output(s)
-
-        # NOTE: Output unaligned reads
-        opt['--un-conc'] = task.output(s).replace('aligned.sam', 'unaligned.fastq')
+        opt['-S'] = os.path.join(task.output_subdir(s), 'aligned.sam')
+        opt['--un-conc'] = os.path.join(task.output_subdir(s), 'unaligned.fastq')
 
         cmd = "{base} {opt}".format(
             base='hisat2',
@@ -157,12 +141,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
+            os.makedirs(task.output_subdir(s), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            with open(os.path.join(task.output_subdir(s), 'stderr.log'), 'w') as f:
-                f.write(proc.stderr.decode())
-
-            with open(os.path.join(task.output_subdir(s), 'stdout.log'), 'w') as f:
-                f.write(proc.stdout.decode())
+            utils.puts_captured_output(proc, task.output_subdir(s))
 
 
 if __name__ == '__main__':

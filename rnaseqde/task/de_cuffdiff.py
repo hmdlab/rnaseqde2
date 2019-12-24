@@ -16,30 +16,17 @@ from collections import OrderedDict
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class DeCuffdiffTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = OrderedDict({'--output-dir': self.output_dir})
 
-        binding = {
-                '--gtf': '--gtf',
-                '--strandness': '--strandness',
-                '--group': '--group',
-                '--dry-run': '--dry-run',
-                '--bam': '--bam'
-                }
+        include_ = ['--gtf', '--strandness', '--group', '--dry-run', '--bam']
 
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update(utils.dictfilter(super().inputs, include_))
 
         return inputs_
 
@@ -89,15 +76,13 @@ def main():
 
     """
 
-    task = DeCuffdiffTask()
-
     opt_runtime = utils.docmopt(dedent(main.__doc__))
-    opt_static = utils.load_conf(opt_runtime['--conf']) if opt_runtime['--conf'] else task.conf
+    task = DeCuffdiffTask(
+        output_dir=opt_runtime['--output-dir'],
+        conf_path=opt_runtime['--conf']
+        )
 
-    task.output_dir = opt_runtime['--output-dir']
-    os.makedirs(task.output_dir, exist_ok=True)
-
-    opt = opt_static
+    opt = task.conf
 
     opt_ = {
         'fr': {'--library-type': 'fr-secondstrand'},
@@ -127,12 +112,9 @@ def main():
     sys.stderr.write("Command: {}\n".format(cmd))
 
     if not opt_runtime['--dry-run']:
+        os.makedirs(task.output_dir, exist_ok=True)
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        with open(os.path.join(task.output_dir, 'stderr.log'), 'w') as f:
-            f.write(proc.stderr.decode())
-
-        with open(os.path.join(task.output_dir, 'stdout.log'), 'w') as f:
-            f.write(proc.stdout.decode())
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

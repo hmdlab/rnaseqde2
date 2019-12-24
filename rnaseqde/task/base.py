@@ -23,18 +23,15 @@ logger = getLogger(__name__)
 class Task(metaclass=ABCMeta):
     instances = []
     dry_run = False
-    in_array = None
-    scripts = None
 
     def __init__(
             self,
             required_tasks=None,
-            **kwargs):
+            output_dir=None):
 
         self.required_tasks = required_tasks
-        self.kwargs = kwargs
+        self._output_dir = output_dir
         self._job_id = None
-        self._output_dir = None
         self.register()
 
     @classmethod
@@ -46,7 +43,10 @@ class Task(metaclass=ABCMeta):
     def task_job_ids(cls):
         return [task.job_id for task in cls.tasks]
 
-    def submit_query(self, script, opt_script):
+    def submit_query(self, script, opt_script=None, opt_qsub=None):
+        if script is None:
+            script = self.script
+
         def _build_command():
             if not os.environ.get('SGE_TASK_ID', None):
                 cmd = "{script} {opt_script}".format(
@@ -59,13 +59,11 @@ class Task(metaclass=ABCMeta):
                 '-V': True,
                 '-terse': True,
                 '-N': self.task_name,
-                '-hold_jid': self._qsub_hold_job_ids
+                '-hold_jid': self.qsub_hold_job_ids
             }
 
-            if self.__class__.in_array:
-                opt.update(
-                    {'-t': self._qsub_threads}
-                )
+            if opt_qsub is not None:
+                opt.update(opt_qsub)
 
             cmd = "{base} {opt} {script} {opt_script}".format(
                 base='qsub',
@@ -76,8 +74,7 @@ class Task(metaclass=ABCMeta):
             return cmd
 
         cmd = _build_command()
-        logger.debug("Task name: {}".format(self.task_name))
-        logger.debug("Command: {}".format(cmd))
+        logger.debug("{}: {}".format(self.task_name, cmd))
 
         if not self.__class__.dry_run:
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -110,14 +107,11 @@ class Task(metaclass=ABCMeta):
         return re.sub(r"_task$", '', utils.snake_cased(self.__class__.__name__))
 
     @property
-    def _qsub_threads(self):
-        # NOTE: Obtain last value from ordered dict
-        n_tasks = len(next(reversed(self.inputs.values())))
-        step = 1
-        return "1-{}:{}".format(str(int(n_tasks)), step)
+    def script(self):
+        return utils.actpath_to_sympath(sys.modules[self.__module__].__file__)
 
     @property
-    def _qsub_hold_job_ids(self):
+    def qsub_hold_job_ids(self):
         if self.required_tasks is not None:
             try:
                 job_ids = ','.join(
@@ -152,16 +146,15 @@ class CommandLineTask(Task):
     def __init__(
             self,
             required_tasks=None,
-            **kwargs):
-
-        super().__init__(required_tasks=required_tasks)
-        self.conf = utils.load_conf("config/task/{}.yml".format(self.task_name), strict=False)
+            output_dir=None,
+            conf_path=None):
+        super().__init__(required_tasks=required_tasks, output_dir=output_dir)
+        conf_path = conf_path if conf_path else "config/task/{}.yml".format(self.task_name)
+        self.conf = utils.load_conf(conf_path, strict=False)
 
     def run(self):
-        os.makedirs(self.output_dir, exist_ok=True)
-
         self.submit_query(
-            script=self.__class__.script,
+            script=self.script,
             opt_script=utils.optdict_to_str(self.inputs)
             )
 
@@ -178,9 +171,11 @@ class CommandLineTask(Task):
 
     @property
     def output_dir(self):
+        # NOTE: Case in called by the internal script
         if self._output_dir is not None:
             return self._output_dir
 
+        # NOTE: Case in called by the workflow
         if self.required_tasks is not None:
             return os.path.join(self.upper().output_dir, self.task_name)
         else:
@@ -189,6 +184,15 @@ class CommandLineTask(Task):
     @output_dir.setter
     def output_dir(self, output_dir):
         self._output_dir = output_dir
+
+
+class ArrayTask(CommandLineTask):
+    def run(self):
+        self.submit_query(
+            script=self.script,
+            opt_script=utils.optdict_to_str(self.inputs),
+            opt_qsub={'-t': self.qsub_threads}
+            )
 
     @classmethod
     def scattered(cls, inputs):
@@ -202,6 +206,26 @@ class CommandLineTask(Task):
             return inputs
         else:
             return [inputs[~-sge_task_id]]
+
+    def _n_tasks(self):
+        return len(next(reversed(self.inputs.values())))
+
+    @property
+    def n_tasks(self):
+        return self._n_tasks()
+
+    def _qsub_threads(self, step=1):
+        return "1-{n}:{step}".format(
+            n=str(self.n_tasks),
+            step=step)
+
+    @property
+    def qsub_threads(self):
+        return self._qsub_threads()
+
+    @abstractmethod
+    def output_subdir(self):
+        pass
 
 
 class DictWrapperTask(Task):

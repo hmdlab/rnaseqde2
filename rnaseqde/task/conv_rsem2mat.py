@@ -12,16 +12,9 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
 
-
-logger = getLogger(__name__)
-
-
-class ConvRsemToEbseqMatrixTask(CommandLineTask):
+class ConvRsemToMatrixTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
@@ -37,19 +30,13 @@ class ConvRsemToEbseqMatrixTask(CommandLineTask):
 
         return inputs_
 
-    def output_subdir(self, unit):
-        return os.path.join(self.output_dir, unit)
-
-    def output(self, unit):
-        return os.path.join(self.output_subdir(unit), 'count_matrix.tsv')
-
     @property
     def outputs(self):
         dict_ = super().inputs
 
-        for u in ['gene', 'transcript']:
-            key_ = "--{}-mat-tsv".format(u)
-            dict_[key_] = self.output(u)
+        for v in ['gene', 'transcript']:
+            key_ = "--{}-mat-tsv".format(v)
+            dict_[key_] = os.path.join(self.output_dir, v, 'count_matrix.tsv')
 
         return dict_
 
@@ -67,33 +54,35 @@ def main():
         --gene-tsv <PATH>...        : Gene-level counts TSV file
         --transcript-tsv <PATH>...  : Transcript-level counts TSV file
 
-    Example:
-        rsem-generate-data-matrix [<rsem-result-tsv>...]
-
     """
 
-    task = ConvRsemToEbseqMatrixTask()
+    task = ConvRsemToMatrixTask()
 
     opt_runtime = utils.docmopt(dedent(main.__doc__))
 
     task.output_dir = opt_runtime['--output-dir']
 
-    for level in ['gene', 'transcript']:
-        os.makedirs(task.output_subdir(level), exist_ok=True)
-
-        key_ = "--{}-tsv".format(level)
+    for v in ['gene', 'transcript']:
+        key_ = "--{}-tsv".format(v)
         args = opt_runtime[key_]
+
+        if args is None:
+            continue
+
+        output_dir_ = os.path.join(task.output_dir, v)
 
         cmd = "{base} {args} >| {output}".format(
             base='rsem-generate-data-matrix',
             args=' '.join(args),
-            output=task.output(level)
+            output=os.path.join(output_dir_, 'count_matrix.tsv')
             )
 
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
+            os.makedirs(output_dir_, exist_ok=True)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            utils.puts_captured_output(proc)
 
 
 if __name__ == '__main__':

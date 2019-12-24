@@ -13,16 +13,9 @@ from textwrap import dedent
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
-from logging import getLogger
-
-
-logger = getLogger(__name__)
-
 
 class DeEbseqTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
@@ -43,8 +36,9 @@ class DeEbseqTask(CommandLineTask):
     @property
     def outputs(self):
         outputs_ = super().inputs
-        for level in ['gene', 'transcript']:
-            outputs_[level + '-tsv'] = os.path.join(self.output_dir, level, 'results.tsv')
+        for v in ['gene', 'transcript']:
+            key_ = "--{}-tsv".format(v)
+            outputs_[key_] = os.path.join(self.output_dir, v, 'results.tsv')
 
         return outputs_
 
@@ -75,30 +69,25 @@ def main():
     n_reps = [str(v) for v in collections.Counter(opt_runtime['--group']).values()]
 
     for v in ['gene', 'transcript']:
-        opt = {}
-        output_dir_ = os.path.join(task.output_dir, v)
-        os.makedirs(output_dir_, exist_ok=True)
-
         key_ = "--{}-mat-tsv".format(v)
+        if opt_runtime[key_] is None:
+            continue
+
+        output_dir_ = os.path.join(task.output_dir, v)
+
+        opt = {
+            '--ngvector': "'#'" if v == 'gene' else opt_runtime['--ngvector'],
+            '--level': v,
+            '--output-dir': output_dir_
+        }
 
         args = [None] * 3
-        ngvector = "'#'" if v == 'gene' else opt_runtime['--ngvector']
-
-        opt['--ngvector'] = ngvector
-        opt['--level'] = v
-        opt['--output-dir'] = output_dir_
-
         args[0] = opt_runtime[key_]
         args[1], args[2] = n_reps
 
-        if None in args:
-            for i, _ in enumerate(args):
-                if _ is None:
-                    raise Exception("Positional arg{} is not assigned.".format(i))
-
         cmd = "{base} {script} {opt} {args}".format(
             base='Rscript',
-            script=utils.from_root('scripts/rsem-for-ebseq-find-DE.R'),
+            script=utils.from_root('scripts/de_ebseq.R'),
             opt=utils.optdict_to_str(opt),
             args=' '.join(args)
             )
@@ -106,9 +95,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
+            os.makedirs(output_dir_, exist_ok=True)
             proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.write_proc_log(proc, output_dir_, stdout=True)
-
+            utils.puts_captured_output(proc)
 
 if __name__ == '__main__':
     main()
