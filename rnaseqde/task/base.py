@@ -43,7 +43,7 @@ class Task(metaclass=ABCMeta):
     def task_job_ids(cls):
         return [task.job_id for task in cls.tasks]
 
-    def submit_query(self, script, opt_script=None, opt_qsub=None):
+    def submit_query(self, script, opt_script=None, opt_qsub=None, log=True):
         if script is None:
             script = self.script
 
@@ -74,10 +74,12 @@ class Task(metaclass=ABCMeta):
             return cmd
 
         cmd = _build_command()
-        logger.debug("{}: {}".format(self.task_name, cmd))
+
+        if log:
+            logger.debug("{}: {}".format(self.task_name, cmd))
 
         if not self.__class__.dry_run:
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
 
         if not self.__class__.dry_run and os.environ.get('SGE_TASK_ID', None):
             self.job_id = proc.stdout
@@ -159,7 +161,7 @@ class CommandLineTask(Task):
             )
 
     @property
-    def inputs(self):
+    def _inputs(self):
         inputs_ = {}
 
         if self.required_tasks is not None:
@@ -168,6 +170,10 @@ class CommandLineTask(Task):
                     inputs_.update(task.outputs)
 
         return inputs_
+
+    @property
+    def inputs(self):
+        pass
 
     @property
     def output_dir(self):
@@ -207,8 +213,12 @@ class ArrayTask(CommandLineTask):
         else:
             return [inputs[~-sge_task_id]]
 
+    @property
+    def incrementer(self):
+        return list(self.inputs.values())[-1]
+
     def _n_tasks(self):
-        return len(next(reversed(self.inputs.values())))
+        return len(self.incrementer)
 
     @property
     def n_tasks(self):
@@ -224,7 +234,18 @@ class ArrayTask(CommandLineTask):
         return self._qsub_threads()
 
     @abstractmethod
-    def output_subdir(self):
+    def suboutput_dir(self):
+        pass
+
+    def _suboutputs(self, input, binding):
+        suboutputs_ = {}
+        for k, v in binding.items():
+            suboutputs_[k] = os.path.join(self.suboutput_dir(input), v)
+
+        return suboutputs_
+
+    @abstractmethod
+    def suboutputs(self):
         pass
 
 

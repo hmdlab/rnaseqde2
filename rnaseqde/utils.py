@@ -11,11 +11,11 @@ import re
 import glob
 from pathlib import Path
 from copy import deepcopy
+from textwrap import dedent
 import itertools
-from typing import List
-from collections import OrderedDict
-from docopt import docopt
+from typing import Union, List
 
+from docopt import docopt, parse_defaults
 import yaml
 
 
@@ -45,7 +45,7 @@ def actpath_to_sympath(abspath_actual):
 def load_conf(relpath, strict=True):
     try:
         with open(from_root(relpath)) as f:
-            dict_ = yaml.load(f)
+            dict_ = yaml.safe_load(f)
     except FileNotFoundError as e:
         if strict:
             sys.stderr.write("{}".format(str(e)))
@@ -56,49 +56,118 @@ def load_conf(relpath, strict=True):
 
 
 def docmopt(doc, **kwargs):
-    def tidyargv(argv: list, prefix='--'):
+    # HACK: DO NOT have state
+    def tidyargv(argv: list, prefixes=['--', '-']):
         list_ = []
+        is_open = False
         for v in argv:
-            if v.startswith(prefix):
+            if any(map(v.startswith, prefixes)):
+                # NOTE: Lazy eval
+                if is_open:
+                    list_.append(p)
+
                 p = v
+                is_open = True
                 continue
 
             list_.append(p)
             list_.append(v)
+            is_open = False
+
+        if is_open:
+            list_.append(p)
+
         return list_
 
-    kwargs.update({
-            'argv': tidyargv(sys.argv[1:]),
+    doc = dedent(doc)
+
+    try:
+        argv = kwargs.pop('argv')
+    except KeyError:
+        argv = sys.argv[1:]
+
+    kwargs.update(
+        {
+            'argv': tidyargv(argv),
+            'help': True,
             'options_first': True
         })
 
-    return docopt(doc, help=True, **kwargs)
+    return docopt(doc, **kwargs)
 
 
-def dictbind(src: dict, dist: dict, binding: dict):
-    dict_ = OrderedDict(deepcopy(src))
+def docopt_keys(doc):
+    doc = dedent(doc)
+    opts = parse_defaults(doc)
+    keys = [o.name for o in opts]
+
+    return keys
+
+
+def dictbind(dist: dict, src: dict, binding: dict):
+    dist_ = deepcopy(dist)
     for k, v in binding.items():
-        dict_[k] = dist[v]
+        dist_[k] = src[v]
 
-    return(dict_)
+    return(dist_)
 
 
 def dictfilter(src: dict, include=None, exclude=None):
     if include:
-        dict_ = OrderedDict()
+        dist_ = {}
         for k in include:
-            dict_[k] = src[k]
+            try:
+                dist_[k] = src[k]
+            except KeyError:
+                pass
 
     if exclude:
         try:
-            dict_
+            dist_
         except NameError:
-            dict_ = OrderedDict(deepcopy(src))
+            dist_ = deepcopy(src)
 
         for k in exclude:
-            del dict_[k]
+            try:
+                del dist_[k]
+            except NameError:
+                pass
 
-    return(dict_)
+    return(dist_)
+
+
+def dictupdate_if_exists(dist: Union[list, dict], src: dict):
+    if type(dist) is list:
+        dist = {k: None for k in dist}
+
+    if type(dist) is dict:
+        dist_ = deepcopy(dist)
+        dist_.update(dictfilter(src, include=dist.keys()))
+        return dist_
+
+    raise TypeError(f"dist must type of list or dict: {type(dist)}")
+
+
+def flatten(nested_list):
+    list_ = []
+    for item in nested_list:
+        if isinstance(item, list):
+            list_.extend(flatten(item))
+        else:
+            list_.append(item)
+
+    return list_
+
+
+def dictcombine(src: List[dict], default=None, exclude=None):
+    # NOTE: Lost order info
+    keys = set(flatten([list(s.keys()) for s in src]))
+
+    dict_ = {}
+    for k in keys:
+        dict_[k] = [s.get(k, default) for s in src if s.get(k, default) != exclude]
+
+    return dict_
 
 
 def optdict_to_str(dict_, delimiter=' ', tidy=False):
@@ -150,7 +219,7 @@ def gathered(list_dict: List[dict], key):
 
 
 # NOTE: Change bypass flag
-def puts_captured_output(proc, output_dir='.', bypass=True):
+def puts_captured_output(proc, output_dir='.', bypass=False):
     with open(os.path.join(output_dir, 'stderr.log'), 'w') as f:
         f.write(proc.stderr.decode())
 
@@ -208,22 +277,12 @@ def dict_globed(dir):
     return dict_
 
 
+# XXX:
 def nested_list_to_variables(nested_list_):
     for i, l in enumerate(nested_list_):
         locals()['v' + str(i)] = l
 
     exec("return " + ", ".join(["v{}".format(_) for _ in range(-~i)]))
-
-
-def flatten(nested_list):
-    list_ = []
-    for item in nested_list:
-        if isinstance(item, list):
-            list_.extend(flatten(item))
-        else:
-            list_.append(item)
-
-    return list_
 
 
 def clean():

@@ -9,9 +9,7 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 import itertools
-from collections import OrderedDict
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -22,25 +20,30 @@ class DeCuffdiffTask(CommandLineTask):
 
     @property
     def inputs(self):
-        inputs_ = OrderedDict({'--output-dir': self.output_dir})
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        include_ = ['--gtf', '--strandness', '--group', '--dry-run', '--bam']
-
-        inputs_.update(utils.dictfilter(super().inputs, include_))
+        inputs_.update({
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-
-        for k, v in {
+        outputs_ = self._inputs
+        binding = {
             '--transcript-tsv': 'isoform_exp.diff',
             '--transcript-raw-tsv': 'isoforms.read_group_tracking',
             '--gene-tsv': 'gene_exp.diff',
             '--gene-raw-tsv': 'genes.read_group_tracking'
-        }.items():
-            outputs_[k] = os.path.join(self.output_dir, v)
+        }
+
+        outputs_.update({
+            k: os.path.join(self.output_dir, v)for k, v in binding.items()
+            })
 
         return outputs_
 
@@ -50,7 +53,7 @@ def _grouped(groups, values):
 
     # CHANGE: Do NOT sort, keep order
     # list_.sort(key=lambda x: x[0])
-    dict_ = OrderedDict()
+    dict_ = {}
 
     for key, group in itertools.groupby(list_, lambda x: x[0]):
         dict_[key] = [v for _, v in list(group)]
@@ -76,7 +79,7 @@ def main():
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = DeCuffdiffTask(
         output_dir=opt_runtime['--output-dir'],
         conf_path=opt_runtime['--conf']
@@ -113,7 +116,7 @@ def main():
 
     if not opt_runtime['--dry-run']:
         os.makedirs(task.output_dir, exist_ok=True)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
         utils.puts_captured_output(proc, task.output_dir)
 
 

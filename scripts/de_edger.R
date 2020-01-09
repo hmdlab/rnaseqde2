@@ -128,7 +128,7 @@ for (i in 1:length(results_et)) {
 ## Create TSV
 colnames(expressions_cpm)[-1] <- paste(colnames(expressions_cpm)[-1], 'CPM',  sep = '_')
 table_merged <- table_merged %>% left_join(expressions_cpm, by = 'GeneID')
-table_merged %>% arrange(GeneID) %>% write_tsv_from(path = 'result_comparisions.tsv', from = output_dir)
+table_merged %>% arrange(GeneID) %>% write_tsv_from(path = 'combined.tsv', from = output_dir)
 
 
 # Create summary

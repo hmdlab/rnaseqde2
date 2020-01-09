@@ -25,14 +25,14 @@ def run(opt, assets):
 
     align_tasks = [AlignTophat2Task]
 
-    # Queue quantification tasks
+    # Queue quantification and DE tasks
     for at in align_tasks:
         for t in at.instances:
             DeCuffdiffTask([t])
 
     EndTask(
         required_tasks=Task.instances,
-        excepted_tasks=[beginning]
+        excluded_tasks=DictWrapperTask.instances
     )
 
     Task.run_all_tasks()

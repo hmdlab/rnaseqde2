@@ -9,7 +9,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import ArrayTask
@@ -20,49 +19,43 @@ class QuantRsemTask(ArrayTask):
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--index': '--rsem-index',
-                '--layout': '--layout',
-                '--strandness': '--strandness',
-                '--dry-run': '--dry-run',
-                '--transcript-bam': '--transcript-bam'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--index': self._inputs['--rsem-index'],
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
-    def output_subdir(self, input):
-        subdir_ = os.path.join(
+    def suboutput_dir(self, input):
+        suboutput_dir_ = os.path.join(
             self.output_dir,
             os.path.basename(os.path.dirname(input))
-        )
+            )
+        return suboutput_dir_
 
-        return subdir_
+    def suboutputs(self, input, prefix='quantified'):
+        binding = {
+            '--output-prefix': prefix,
+            '--gene-tsv': f"{prefix}.genes.results",
+            '--transcript-tsv': f"{prefix}.isoforms.results",
+            '--stat': f"{prefix}.stat"
+        }
 
-    def output_prefix(self, input):
-        prefix_ = os.path.join(self.output_subdir(input), 'quantified')
-
-        return prefix_
+        return self._suboutputs(input, binding)
 
     @property
     def outputs(self):
-        bams = self.inputs['--transcript-bam']
+        outputs_ = self._inputs
+        outputs_.update(
+            utils.dictcombine([self.suboutputs(i) for i in self.incrementer])
+        )
 
-        binding = {
-            '--gene-tsv': '.genes.results',
-            '--transcript-tsv': '.isoforms.results',
-            '--stat': '.stat'
-        }
-
-        dict_ = super().inputs
-
-        for k, v in binding.items():
-            dict_[k] = [self.output_prefix(s) + v for s in bams]
-
-        return dict_
+        return outputs_
 
 
 def main():
@@ -81,17 +74,9 @@ def main():
         --dry-run                   : Dry-run [default: False]
         --transcript-bam <PATH>...  : BAM file mapped to Transcriptome
 
-    Example:
-        rsem-calculate-expression \\
-        --bam --no-bam-output \\
-        --estimate-rspd --calc-ci --seed 12345 \\
-        --num-thread --ci-memory 32768 \\
-        [--paired-end] [--forward-prob 1.0] \\
-        ${transcript-bam} ${index} ${output-prefix}
-
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = QuantRsemTask(
         output_dir=opt_runtime['--output-dir'],
         conf_path=opt_runtime['--conf']
@@ -119,7 +104,7 @@ def main():
 
     for b in bams:
         args[0] = b
-        args[2] = task.output_prefix(b)
+        args[2] = task.suboutputs(b)['--output-prefix']
 
         cmd = "{base} {opt} {args}".format(
             base='rsem-calculate-expression',
@@ -130,9 +115,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(task.output_subdir(b), exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.puts_captured_output(proc)
+            os.makedirs(task.suboutput_dir(b), exist_ok=True)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
+            utils.puts_captured_output(proc, task.suboutput_dir(b))
 
 
 if __name__ == '__main__':

@@ -8,7 +8,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 import itertools
 
 import rnaseqde.utils as utils
@@ -17,8 +16,15 @@ from rnaseqde.task.base import CommandLineTask
 
 class DeEdgerTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
+
+    def __init__(
+            self,
+            required_tasks=None,
+            output_dir=None,
+            conf_path=None,
+            level='gene'):
+        super().__init__(required_tasks=required_tasks, output_dir=output_dir, conf_path=conf_path)
+        self.level = level
 
     @property
     def inputs(self):
@@ -26,30 +32,43 @@ class DeEdgerTask(CommandLineTask):
 
         binding = {
                 '--sample-sheet': '<sample_sheet>',
-                '--dry-run': '--dry-run',
-                '--count-mat-tsv': '--transcript-mat-tsv'
+                '--dry-run': '--dry-run'
                 }
 
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        if self.level == 'gene':
+            binding.update({
+                '--count-mat-tsv': '--gene-mat-tsv'
+            })
+
+        if self.level == 'transcript':
+            binding.update({
+                '--count-mat-tsv': '--transcript-mat-tsv'
+            })
+
+        inputs_ = utils.dictbind(inputs_, self._inputs, binding)
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-
-        groups_ = super().inputs['--group']
+        outputs_ = self._inputs
+        groups_ = self._inputs['--group']
         group_ = sorted(set(groups_), key=groups_.index)
         combinations = list(itertools.combinations(group_, 2))
 
-        # TODO: Append gene-level analysis
-        for v in ['transcript']:
-            outputs_['--' + v + '-all-tsv'] = os.path.join(self.output_dir, v, 'result_all_comparisons.tsv')
-            outputs_['--' + v + '-summary'] = os.path.join(self.output_dir, v, 'summary.tsv')
+        binding = {
+            "--edger-{}-cpm-tsv": 'expressions_cpm.tsv',
+            "--edger-{}-combined-tsv": 'combined.tsv',
+            "--edger-{}-summary": 'summary.tsv'
+            }
+
+        for v in ['gene', 'transcript']:
+            for key, val in binding.items():
+                outputs_[key.format(v)] = os.path.join(self.output_dir, v, val)
 
             for c in combinations:
-                file_name = "result_{}_vs_{}.tsv".format(c[0], c[1])
-                outputs_['--' + v + '-tsv'] = os.path.join(self.output_dir, v, file_name)
+                basename = "result_{}_vs_{}.tsv".format(c[0], c[1])
+                outputs_[f"--edger-{v}-result-tsv"] = os.path.join(self.output_dir, v, basename)
 
         return outputs_
 
@@ -65,11 +84,11 @@ def main():
         --sample-sheet <PATH>        : Sample sheet
         --output-dir <PATH>          : Output directory [default: .]
         --dry-run                    : Dry-run [default: False]
-        --count-mat-tsv <PATH>       : Transcrit-level count matrix file
+        --count-mat-tsv <PATH>       : Gene/transcrit-level count matrix file
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = DeEdgerTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, exclude=['--count-mat-tsv', '--dry-run'])
@@ -78,8 +97,7 @@ def main():
     args[0] = opt_runtime['--count-mat-tsv']
 
     for v in ['gene', 'transcript']:
-        output_dir_ = os.path.join(task.output_dir, v)
-        opt['--output-dir'] = output_dir_
+        opt['--output-dir'] = task.output_dir
         opt['--level'] = v
 
         cmd = "{base} {script} {opt} {args}".format(
@@ -92,9 +110,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(output_dir_, exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.puts_captured_output(proc, output_dir_)
+            os.makedirs(task.output_dir, exist_ok=True)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
+            utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

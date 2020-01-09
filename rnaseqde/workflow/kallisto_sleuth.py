@@ -16,19 +16,20 @@ def run(opt, assets):
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
-    # Queue alignment tasks
+    # Queue quantification tasks
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
         beginning = DictWrapperTask(opt_, output_dir=k)
         QuantKallistoTask([beginning])
 
+    # Queue DE tasks
     for t in QuantKallistoTask.instances:
         DeSleuthTask([t])
 
     EndTask(
         required_tasks=Task.instances,
-        excepted_tasks=[beginning]
+        excluded_tasks=DictWrapperTask.instances
     )
 
     Task.run_all_tasks()

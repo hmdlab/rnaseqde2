@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
+#$ -l s_vmem=0.5G -l mem_req=0.5G
 #$ -cwd
 #$ -o ./ugelogs/
 #$ -e ./ugelogs/
@@ -14,48 +15,49 @@ from rnaseqde.task.base import Task
 
 class EndTask(Task):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     def __init__(
             self,
             required_tasks=None,
-            excepted_tasks=None,
+            excluded_tasks=None,
             **kwargs):
         super().__init__(required_tasks=required_tasks, **kwargs)
-        self.excepted_tasks = excepted_tasks
+        self.excluded_tasks = excluded_tasks
 
     def run(self):
         self.submit_query(
-            script=self.__class__.script,
-            opt_script=' '.join(self.inputs)
+            script=self.script,
+            opt_script=' '.join(self.inputs),
+            log=False
             )
 
     @property
     def inputs(self):
         inputs_ = [output for task in self.required_tasks for output in task.outputs.values() if output]
-        inputs_excepted = [output for task in self.excepted_tasks for output in task.outputs.values() if output]
-        inputs_ = set(utils.flatten(inputs_)) - set(utils.flatten(inputs_excepted))
+        inputs_excluded = [output for task in self.excluded_tasks for output in task.outputs.values() if output]
+
+        inputs_ = set(utils.flatten(inputs_)) - set(utils.flatten(inputs_excluded))
 
         return inputs_
 
     @property
     def output_dir(self):
-        pass
+        return utils.from_root('')
 
     @property
     def outputs(self):
-        return {__file__: self.__class__.script}
+        return {__file__: self.script}
 
 
 def main():
     task_outputs = sys.argv[1:]
+
+    # HUCK: Use try except
     error_occured = False
     messages = []
 
     cwd = os.getcwd()
     utils.actpath_to_sympath(cwd)
-    print(cwd)
 
     for output in task_outputs:
         if cwd not in output:

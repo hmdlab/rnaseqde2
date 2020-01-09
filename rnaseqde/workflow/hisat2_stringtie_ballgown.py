@@ -41,7 +41,7 @@ def run(opt, assets):
 
     EndTask(
         required_tasks=Task.instances,
-        excepted_tasks=[beginning]
+        excluded_tasks=DictWrapperTask.instances
     )
 
     Task.run_all_tasks()

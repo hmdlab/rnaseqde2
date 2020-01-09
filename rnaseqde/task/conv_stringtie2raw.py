@@ -8,7 +8,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -16,32 +15,26 @@ from rnaseqde.task.base import CommandLineTask
 
 class ConvStringtieToRawTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--sample': '--sample',
-                '--dry-run': '--dry-run',
-                '--quantified-gtf': '--quantified-gtf'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-
-        for level in ['gene', 'transcript']:
-            outputs_['--' + level + '-csv'] = os.path.join(
-                self.output_dir,
-                "{}_count_matrix.csv".format(level)
-                )
+        outputs_ = self._inputs
+        outputs_.update({
+            f"--{v}-mat-csv": os.path.join(self.output_dir, f"{v}_count_matrix.csv") for v in ['gene', 'transcript']
+            })
 
         return outputs_
 
@@ -72,31 +65,32 @@ def main():
     """
 
     task = ConvStringtieToRawTask()
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
 
     task.output_dir = opt_runtime['--output-dir']
 
-    os.makedirs(task.output_dir, exist_ok=True)
-    list_targets = task.puts_list_targets(
-        opt_runtime['--quantified-gtf'],
-        opt_runtime['--sample']
-        )
-
-    opt = {
-        '-i': list_targets,
-        '-g': task.outputs['--gene-csv'],
-        '-t': task.outputs['--transcript-csv']
-    }
-
-    cmd = "{base} {opt}".format(
-        base='prepDE.py',
-        opt=utils.optdict_to_str(opt)
-        )
-
-    sys.stderr.write("Command: {}\n".format(cmd))
-
     if not opt_runtime['--dry-run']:
-        subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        os.makedirs(task.output_dir, exist_ok=True)
+        list_targets = task.puts_list_targets(
+            opt_runtime['--quantified-gtf'],
+            opt_runtime['--sample']
+            )
+
+        opt = {
+            '-i': list_targets,
+            '-g': task.outputs['--gene-mat-csv'],
+            '-t': task.outputs['--transcript-mat-csv']
+        }
+
+        cmd = "{base} {opt}".format(
+            base='prepDE.py',
+            opt=utils.optdict_to_str(opt)
+            )
+
+        sys.stderr.write("Command: {}\n".format(cmd))
+
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

@@ -84,12 +84,13 @@ def run(opt, assets):
         DeSleuthTask([t])
 
     for t in ConvAnyToRawTask.instances:
-        DeEdgerTask([t])
+        for v in ['gene', 'transcript']:
+            DeEdgerTask([t])
 
     # Check outputs of each task
     EndTask(
         required_tasks=Task.instances,
-        excepted_tasks=[beginning]
+        excluded_tasks=DictWrapperTask.instances
     )
 
     Task.run_all_tasks()

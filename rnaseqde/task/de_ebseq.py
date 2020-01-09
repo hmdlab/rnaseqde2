@@ -8,7 +8,6 @@ import sys
 import os
 import subprocess
 import collections
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -19,26 +18,29 @@ class DeEbseqTask(CommandLineTask):
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--ngvector': '--ebseq-ngvector',
-                '--group': '--group',
-                '--dry-run': '--dry-run',
-                '--gene-mat-tsv': '--gene-mat-tsv',
-                '--transcript-mat-tsv': '--transcript-mat-tsv'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--ngvector': self._inputs['--ebseq-ngvector'],
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
+        outputs_ = self._inputs
+        binding = {
+            "--ebseq-{}-result-tsv": 'result.tsv',
+            "--ebseq-{}-result-norm-tsv": 'result.tsv.normalized_data_matrix'
+            }
+
         for v in ['gene', 'transcript']:
-            key_ = "--{}-tsv".format(v)
-            outputs_[key_] = os.path.join(self.output_dir, v, 'results.tsv')
+            for key, val in binding.items():
+                outputs_[key.format(v)] = os.path.join(self.output_dir, v, val)
 
         return outputs_
 
@@ -61,7 +63,7 @@ def main():
     """
 
     task = DeEbseqTask()
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
 
     task.output_dir = opt_runtime['--output-dir']
 
@@ -96,8 +98,9 @@ def main():
 
         if not opt_runtime['--dry-run']:
             os.makedirs(output_dir_, exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.puts_captured_output(proc)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
+            utils.puts_captured_output(proc, output_dir_)
+
 
 if __name__ == '__main__':
     main()

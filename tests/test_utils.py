@@ -5,55 +5,74 @@ This is test for rnaseqde.utils
 import os
 import unittest
 
-import rnaseqde.utils
+import rnaseqde.utils as utils
 
 
 class TestUtils(unittest.TestCase):
-    def test_to_abspath(self):
-        root_path = os.path.dirname(rnaseqde.utils.__file__)
-        relpath = 'foo'
-
-        expected = os.path.join(root_path, relpath)
-        actual = rnaseqde.utils.to_abspath(relpath)
-
-        self.assertEqual(expected, actual)
-
     def test_load_conf(self):
-        relpath = '../test/assets.yml'
+        relpath = 'tests/test.yml'
 
-        conf = rnaseqde.utils.load_conf(relpath)
+        conf = utils.load_conf(relpath)
 
-        expected = 'path_to_index'
-        actual = conf['references']['grch38']
-        self.assertEqual(expected, actual)
-
-        expected = 'path_to_gtf'
-        actual = conf['annotations']['grch38']['gencode']
+        expected = 'path_to_baz'
+        actual = conf['foo']['bar']
         self.assertEqual(expected, actual)
 
     def test_basename_replaced_ext(self):
         str = 'foo.bar.baz'
 
         expected = 'foo.bar.qux'
-        actual = rnaseqde.utils.basename_replaced_ext('.baz', '.qux', str)
+        actual = utils.basename_replaced_ext('.baz', '.qux', str)
 
         self.assertEqual(expected, actual)
 
-    def test_str_camel_cased(self):
+    def test_camel_cased(self):
         class_name = 'foo_bar_baz'
 
         expected = 'fooBarBaz'
-        actual = rnaseqde.utils.str_camel_cased(class_name)
+        actual = utils.camel_cased(class_name)
 
         self.assertEqual(expected, actual)
 
-    def test_str_snake_cased(self):
+    def test_snake_cased(self):
         class_name = 'FooBarBaz'
 
         expected = 'foo_bar_baz'
-        actual = rnaseqde.utils.str_snake_cased(class_name)
+        actual = utils.snake_cased(class_name)
 
         self.assertEqual(expected, actual)
+
+    def test_dictcombine(self):
+
+        dict1 = {
+            'foo': 1,
+            'bar': 2
+            }
+
+        dict2 = {
+            'bar': 2,
+            'baz': 3
+            }
+
+        excepted = {
+            'foo': [1],
+            'bar': [2, 2],
+            'baz': [3]
+            }
+
+        actual = utils.dictcombine([dict1, dict2])
+
+        self.assertEqual(excepted, actual)
+
+        excepted = {
+            'foo': [1, 0],
+            'bar': [2, 2],
+            'baz': [0, 3]
+            }
+
+        actual = utils.dictcombine([dict1, dict2], default=0)
+
+        self.assertEqual(excepted, actual)
 
 
 if __name__ == '__main__':

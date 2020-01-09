@@ -8,7 +8,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -19,14 +18,14 @@ class ConvAnyToRawTask(CommandLineTask):
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--gtf': '--gtf',
-                '--dry-run': '--dry-run'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+                '--output-dir': self.output_dir
+                })
 
         def _opt(upper_class):
             n = upper_class.__class__.__name__
@@ -55,11 +54,10 @@ class ConvAnyToRawTask(CommandLineTask):
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-
-        for v in ['gene', 'transcript']:
-            key_ = "--{}-mat-tsv".format(v)
-            outputs_[key_] = os.path.join(self.output_dir, "count_matrix_{}.tsv".format(v))
+        outputs_ = self._inputs
+        outputs_.update({
+            f"--{v}-mat-tsv": os.path.join(self.output_dir, f"count_matrix_{v}.tsv") for v in ['gene', 'transcript']
+            })
 
         return outputs_
 
@@ -81,7 +79,7 @@ def main():
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = ConvAnyToRawTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, ['--gtf', '--type', '--output-dir'])
@@ -98,7 +96,7 @@ def main():
 
     if not opt_runtime['--dry-run']:
         os.makedirs(task.output_dir, exist_ok=True)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
         utils.puts_captured_output(proc, task.output_dir)
 
 

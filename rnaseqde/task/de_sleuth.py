@@ -8,7 +8,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -16,28 +15,27 @@ from rnaseqde.task.base import CommandLineTask
 
 class DeSleuthTask(CommandLineTask):
     instances = []
-    in_array = False
-    script = utils.actpath_to_sympath(__file__)
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--gtf': '--gtf',
-                '--sample-sheet': '<sample_sheet>',
-                '--dry-run': '--dry-run',
-                '--h5': '--h5'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--sample-sheet': self._inputs['<sample_sheet>'],
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-        outputs_['--transcript-tsv'] = os.path.join(self.output_dir, 'results.tsv')
+        outputs_ = self._inputs
+        outputs_.update({
+            f"--sleuth-{v}-result-tsv": os.path.join(self.output_dir, f"result_{v}.tsv") for v in ['gene', 'transcript']
+            })
 
         return outputs_
 
@@ -59,7 +57,7 @@ def main():
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = DeSleuthTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, ['--gtf', '--sample-sheet', '--output-dir'])
@@ -76,7 +74,7 @@ def main():
 
     if not opt_runtime['--dry-run']:
         os.makedirs(task.output_dir, exist_ok=True)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
         utils.puts_captured_output(proc, task.output_dir)
 
 

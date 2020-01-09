@@ -9,7 +9,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import ArrayTask
@@ -20,53 +19,56 @@ class AlignStarTask(ArrayTask):
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--index': '--star-index',
-                '--gtf': '--gtf',
-                '--layout': '--layout',
-                '--strandness': '--strandness',
-                '--sample': '--sample',
-                '--dry-run': '--dry-run',
-                '--fastq': '--fastq'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--index': self._inputs['--star-index'],
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
-    # NOTE: Output prefix
-    def output_subdir(self, input):
-        prefix_ = os.path.join(
+    # NOTE: NOT directory, prefix
+    def suboutput_dir(self, input):
+        suboutput_dir_ = os.path.join(
             self.output_dir,
             utils.basename_replaced_ext('.fastq.gz', '', input),
             ''
             )
 
-        return prefix_
+        return suboutput_dir_
 
-    @property
-    def outputs(self):
-        if self.inputs['--layout'] == 'sr':
-            fastq1s = self.inputs['--fastq']
-        else:
-            fastq1s = self.inputs['--fastq'][0::2]
-
-        samples = self.inputs['--sample'] if self.inputs['--sample'] else fastq1s
-
-        dict_ = super().inputs
-
+    def suboutputs(self, input):
         binding = {
             '--bam': 'Aligned.sortedByCoord.out.bam',
             '--transcript-bam': 'Aligned.toTranscriptome.out.bam',
             '--sjdb': 'SJ.out.tab'
         }
 
-        for k, v in binding.items():
-            dict_[k] = [os.path.join(self.output_subdir(s), v) for s in samples]
+        return self._suboutputs(input, binding)
 
-        return dict_
+    @property
+    def outputs(self):
+        def _samples():
+            if self.inputs['--sample'] is not None:
+                return self.inputs['--sample']
+            else:
+                if self.inputs['--layout'] == 'sr':
+                    return self.incrementer
+                else:
+                    return self.incrementer[0:2]
+
+        samples = _samples()
+
+        outputs_ = self._inputs
+        outputs_.update(
+            utils.dictcombine([self.suboutputs(s) for s in samples])
+        )
+
+        return outputs_
 
     @property
     def n_tasks(self):
@@ -86,17 +88,17 @@ def main():
     Options:
         --index <PATH>       : Reference index file
         --gtf <PATH>         : GTF annotation file
-        --fastq <PATH>...    : (Ordered) FASTQ file(s)
         --layout <TYPE>      : Library layout (sr/pe) [default: sr]
         --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>  : Output directory [default: .]
         --sample <STR>...    : (Comma delimited) sample(s)
         --conf <PATH>        : Configuration file
         --dry-run            : Dry-run [default: False]
+        --fastq <PATH>...    : (Ordered) FASTQ file(s)
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = AlignStarTask(
         output_dir=opt_runtime['--output-dir'],
         conf_path=opt_runtime['--conf']
@@ -128,7 +130,7 @@ def main():
 
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['--readFilesIn'] = ' '.join((f1, f2)).strip()
-        opt['--outFileNamePrefix'] = task.output_subdir(s)
+        opt['--outFileNamePrefix'] = task.suboutput_dir(s)
 
         cmd = "{base} {opt}".format(
             base='STAR',
@@ -138,9 +140,9 @@ def main():
         sys.stderr.write("Command: {}\n".format(cmd))
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(task.output_subdir(s), exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.puts_captured_output(proc, task.output_subdir(s))
+            os.makedirs(task.suboutput_dir(s), exist_ok=True)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
+            utils.puts_captured_output(proc, task.suboutput_dir(s))
 
 
 if __name__ == '__main__':

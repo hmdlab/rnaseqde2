@@ -22,9 +22,11 @@ def run(opt, assets):
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
-        beginning = DictWrapperTask(opt_, output_dir=k)
-        AlignStarTask([beginning])
+        AlignStarTask([
+            DictWrapperTask(opt_, output_dir=k)
+            ])
 
+    # Queue quantification tasks
     for t in AlignStarTask.instances:
         QuantRsemTask([t])
 
@@ -37,7 +39,7 @@ def run(opt, assets):
 
     EndTask(
         required_tasks=Task.instances,
-        excepted_tasks=[beginning]
+        excluded_tasks=DictWrapperTask.instances
     )
 
     Task.run_all_tasks()

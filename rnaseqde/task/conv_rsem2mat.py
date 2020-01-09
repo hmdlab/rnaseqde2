@@ -7,7 +7,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -18,27 +17,25 @@ class ConvRsemToMatrixTask(CommandLineTask):
 
     @property
     def inputs(self):
-        inputs_ = {'--output-dir': self.output_dir}
+        inputs_ = utils.dictupdate_if_exists(
+            utils.docopt_keys(main.__doc__),
+            self._inputs
+        )
 
-        binding = {
-                '--dry-run': '--dry-run',
-                '--gene-tsv': '--gene-tsv',
-                '--transcript-tsv': '--transcript-tsv'
-                }
-
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_.update({
+            '--output-dir': self.output_dir
+            })
 
         return inputs_
 
     @property
     def outputs(self):
-        dict_ = super().inputs
+        outputs_ = self._inputs
+        outputs_.update({
+            f"--{v}-mat-tsv": os.path.join(self.output_dir, v, 'count_matrix.tsv') for v in ['gene', 'transcript']
+            })
 
-        for v in ['gene', 'transcript']:
-            key_ = "--{}-mat-tsv".format(v)
-            dict_[key_] = os.path.join(self.output_dir, v, 'count_matrix.tsv')
-
-        return dict_
+        return outputs_
 
 
 def main():
@@ -58,7 +55,7 @@ def main():
 
     task = ConvRsemToMatrixTask()
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
 
     task.output_dir = opt_runtime['--output-dir']
 
@@ -81,8 +78,8 @@ def main():
 
         if not opt_runtime['--dry-run']:
             os.makedirs(output_dir_, exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            utils.puts_captured_output(proc)
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
+            utils.puts_captured_output(proc, output_dir_)
 
 
 if __name__ == '__main__':

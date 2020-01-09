@@ -8,7 +8,6 @@
 import sys
 import os
 import subprocess
-from textwrap import dedent
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
@@ -31,17 +30,16 @@ class DeBallgownTask(CommandLineTask):
         if self.upper().__class__.__name__ == 'QuantStringtieTask':
             del binding['--gtf']
 
-        inputs_ = utils.dictbind(inputs_, super().inputs, binding)
+        inputs_ = utils.dictbind(inputs_, self._inputs, binding)
 
         return inputs_
 
     @property
     def outputs(self):
-        outputs_ = super().inputs
-
-        for v in ['gene', 'transcript']:
-            key_ = "--{}-tsv".format(v)
-            outputs_[key_] = os.path.join(self.output_dir, v, 'results.tsv')
+        outputs_ = self._inputs
+        outputs_.update({
+            f"--ballgown-{v}-result-tsv": os.path.join(self.output_dir, f"result_{v}.tsv") for v in ['gene', 'transcript']
+            })
 
         return outputs_
 
@@ -62,7 +60,7 @@ def main():
 
     """
 
-    opt_runtime = utils.docmopt(dedent(main.__doc__))
+    opt_runtime = utils.docmopt(main.__doc__)
     task = DeBallgownTask(output_dir=opt_runtime['--output-dir'])
 
     opt = utils.dictfilter(opt_runtime, ['--output-dir', '--sample-sheet'])
@@ -80,7 +78,7 @@ def main():
 
     if not opt_runtime['--dry-run']:
         os.makedirs(task.output_dir, exist_ok=True)
-        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
         utils.puts_captured_output(proc, task.output_dir)
 
 
