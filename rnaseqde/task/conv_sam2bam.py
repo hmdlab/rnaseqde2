@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
-#$ -l s_vmem=8G -l mem_req=8G
+#$ -pe def_slot 4
+#$ -l s_vmem=4G -l mem_req=4G
 #$ -cwd
 #$ -o ugelogs/
 #$ -e ugelogs/
@@ -22,8 +23,6 @@ class ConvSamToBamTask(ArrayTask):
             utils.docopt_keys(main.__doc__),
             self._inputs
         )
-
-        print(self._inputs)
 
         inputs_.update({
             '--output-dir': self.output_dir
@@ -81,7 +80,7 @@ def main():
     sams = task.scattered(opt['--sam'])
 
     for s in sams:
-        cmd = "samtools sort -@ 8 {sam} -o {bam}".format(
+        cmd = "samtools sort -@ 4 {sam} -o {bam} && rm {sam}".format(
             sam=s,
             bam=task.suboutputs(s)['--bam']
         )
@@ -92,14 +91,6 @@ def main():
             os.makedirs(task.suboutput_dir(s), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, capture_output=True)
             utils.puts_captured_output(proc, task.suboutput_dir(s))
-
-        # NOTE: Remove SAM file(s)
-        cmd = "rm {sam}".format(sam=s)
-
-        sys.stderr.write("Command: {}\n".format(cmd))
-
-        if not opt_runtime['--dry-run']:
-            subprocess.run(cmd, shell=True)
 
 
 if __name__ == '__main__':

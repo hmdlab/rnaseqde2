@@ -13,6 +13,8 @@ from collections import defaultdict
 
 import inflection
 
+import rnaseqde.utils as utils
+
 
 logger = logging.getLogger(__name__)
 
@@ -61,12 +63,12 @@ class SampleSheetManager:
         return self._dict['group']
 
     def _ordered_fastqs(self, tupled=False):
-        fastq1s = self._dict['fastq1']
+        fastq1s = [utils.actpath_to_sympath(f) for f in self._dict['fastq1']]
         if not self._is_paired:
             return fastq1s
 
-        fastq2s = self._dict['fastq2']
-        fastqs_paired = [(read1, read2) for read1, read2 in zip(fastq1s, fastq2s)]
+        fastq2s = [utils.actpath_to_sympath(f) for f in self._dict['fastq2']]
+        fastqs_paired = [(f1, f2) for f1, f2 in zip(fastq1s, fastq2s)]
         if tupled:
             return fastqs_paired
 
@@ -74,11 +76,11 @@ class SampleSheetManager:
 
     @property
     def fastq1s(self):
-        return self._dict['fastq1']
+        return [utils.actpath_to_sympath(f) for f in self._dict['fastq1']]
 
     @property
     def fastq2s(self):
-        return self._dict['fastq2']
+        return [utils.actpath_to_sympath(f) for f in self._dict['fastq2']]
 
     @property
     def fastqs(self):
@@ -86,7 +88,7 @@ class SampleSheetManager:
 
     @property
     def fastq_paired(self):
-        return self.ordered_read_file(tupled=True)
+        return self._ordered_fastqs(tupled=True)
 
     def to_dict(self):
         attributes = ['sample', 'group', 'fastq', 'fastq1', 'fastq2']
