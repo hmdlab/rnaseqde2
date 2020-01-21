@@ -35,8 +35,6 @@ load_data <- function(input) {
   return(df_wide)
 }
 
-
-dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 rslt <- load_data(input)
 
 postfix <- NULL
@@ -46,6 +44,7 @@ if (grepl('isoforms', basename(input))) {
   postfix <- 'gene'
 }
 
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 rslt %>% write.table(file = file.path(output_dir, paste0(paste('count_matrix', postfix, sep = '_'), '.tsv')),
                      quote = FALSE,
                      sep = '\t',

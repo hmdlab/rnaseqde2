@@ -4,4 +4,4 @@
 --seed: 12345
 --no-bam-output: true
 --num-threads: 4
---ci-memory: 32768
+--ci-memory: 61440

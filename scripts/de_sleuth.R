@@ -69,10 +69,10 @@ so <- sleuth_lrt(so, 'reduced', 'full')
 models(so)
 
 # To generate a table of results for analysis within R type
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 sleuth_table_gene <- sleuth_results(so, 'reduced:full', test_type = 'lrt', show_all = FALSE)
 sleuth_table_gene %>% write_tsv(file.path(output_dir, 'result_gene.tsv'))
 
 results_table_tx <- sleuth_results(so, 'reduced:full', test_type = 'lrt', show_all = FALSE,  pval_aggregate = FALSE)
 results_table_tx %>% write_tsv(file.path(output_dir, 'result_transcript.tsv'))
-

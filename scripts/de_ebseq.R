@@ -56,6 +56,8 @@ if (ngvector_file != "#") {
   stopifnot(!is.null(ngvector))
 }
 
+dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
+
 if (nc == 2) {
   EBOut <- NULL
   EBOut <- EBTest(Data = DataMat, NgVector = ngvector, Conditions = conditions, sizeFactors = Sizes, maxround = 5)

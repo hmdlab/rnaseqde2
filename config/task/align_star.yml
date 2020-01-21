@@ -6,6 +6,6 @@
 --quantMode: TranscriptomeSAM
 --outSAMattributes: All
 --outSAMstrandField: intronMotif
---outSAMheaderHD: "'@HD: VN:1.4: SO:coordinate'"
+--outSAMheaderHD: "'@HD VN:1.4 SO:coordinate'"
 --runThreadN: 4
 --runRNGseed: 777

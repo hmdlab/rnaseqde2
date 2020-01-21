@@ -45,7 +45,8 @@ from rnaseqde.workflow import (
     tophat2_cuffdiff,
     star_rsem_ebseq,
     hisat2_stringtie_ballgown,
-    kallisto_sleuth
+    kallisto_sleuth,
+    fullset_ercc
 )
 import rnaseqde.utils as utils
 
@@ -72,7 +73,8 @@ def _opt_validated(opt):
             'tophat2-cuffdiff',
             'star-rsem-ebseq',
             'hisat2-stringtie-ballgown',
-            'kallisto-sleuth'
+            'kallisto-sleuth',
+            'fullset-ercc'
             ),
         '--layout': Or('sr', 'pe'),
         '--strandness': Or('none', 'rf', 'fr'),
@@ -111,7 +113,8 @@ def main():
         'tophat2-cuffdiff': tophat2_cuffdiff,
         'star-rsem-ebseq': star_rsem_ebseq,
         'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
-        'kallisto-sleuth': kallisto_sleuth
+        'kallisto-sleuth': kallisto_sleuth,
+        'fullset-ercc': fullset_ercc
     }
 
     wf = workflows[opt['--workflow']]
