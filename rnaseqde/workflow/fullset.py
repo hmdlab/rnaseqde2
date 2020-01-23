@@ -27,8 +27,30 @@ from rnaseqde.task.conv_cuffdiff2raw import ConvCuffdiffToRawTask
 from rnaseqde.task.de_edger import DeEdgerTask
 
 
-def run(opt, assets):
+def init_dry_run_option(opt):
     Task.dry_run = opt['--dry-run']
+
+    steps = {
+        'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
+        'quant': [
+            QuantKallistoTask, QuantStringtieTask, DeCuffdiffTask,
+            ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
+            ConvCuffdiffToRawTask, ConvAnyToRawTask
+            ],
+        'de': [DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
+    }
+
+    if opt['--resume-from'] in ['quant', 'de']:
+        for t in steps['align']:
+            t.dry_run = True
+
+    if opt['--resume-from'] in ['de']:
+        for t in steps['quant']:
+            t.dry_run = True
+
+
+def run(opt, assets):
+    init_dry_run_option(opt)
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
@@ -48,6 +70,7 @@ def run(opt, assets):
         ConvSamToBamTask([t])
 
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
+    Task.dry_run = opt['--dry-run']
 
     # Queue quantification tasks
     for at in align_tasks:
@@ -65,6 +88,7 @@ def run(opt, assets):
         ConvRsemToMatrixTask([t])
 
     quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
+    Task.dry_run = opt['--dry-run']
 
     for qt in quant_tasks:
         for t in qt.instances:

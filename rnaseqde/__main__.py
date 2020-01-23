@@ -7,13 +7,14 @@ Usage:
     rnaseqde [options] <sample_sheet>
 
 Options:
-    --workflow <TYPE>    : Workflow [default: fullset]
-    --layout <TYPE>      : Library layout (sr/pe) [default: sr]
-    --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
-    --reference <NAME>   : Reference name [default: grch38]
-    --annotation <NAME>  : Annotation name (in the case using only one annotation)
-    --dry-run            : Dry-run [default: False]
-    <sample_sheet>       : Tab-delimited text that contained the following columns:
+    --workflow <TYPE>     : Workflow [default: fullset]
+    --layout <TYPE>       : Library layout (sr/pe) [default: sr]
+    --strandness <TYPE>   : Library strandness (none/rf/fr) [default: none]
+    --reference <NAME>    : Reference name [default: grch38]
+    --annotation <NAME>   : Annotation name (in the case using only one annotation)
+    --resume-from <TYPE>  : Resume workflow from (align/quant/de)
+    --dry-run             : Dry-run [default: False]
+    <sample_sheet>        : Tab-delimited text that contained the following columns:
                            sample; fastq1[fastq2]; group
 
 Workflows:
@@ -84,6 +85,12 @@ def _opt_validated(opt):
             'gencode',
             'gencode_basic',
             'gencode_refeseq',
+            ),
+        '--resume-from': Or(
+            None,
+            'align',
+            'quant',
+            'de'
             ),
         '--dry-run': bool,
         '<sample_sheet>': str

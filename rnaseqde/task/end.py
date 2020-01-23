@@ -56,8 +56,7 @@ def main():
     error_occured = False
     messages = []
 
-    cwd = os.getcwd()
-    utils.actpath_to_sympath(cwd)
+    cwd = utils.actpath_to_sympath(os.getcwd())
 
     for output in task_outputs:
         if cwd not in output:

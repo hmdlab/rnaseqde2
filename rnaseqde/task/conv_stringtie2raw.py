@@ -39,7 +39,7 @@ class ConvStringtieToRawTask(CommandLineTask):
         return outputs_
 
     def puts_list_targets(self, inputs, samples):
-        targets = [os.path.abspath(input) for input in inputs]
+        targets = [utils.actpath_to_sympath(os.path.abspath(input)) for input in inputs]
         list_targets = os.path.join(self.output_dir, 'list_targets.txt')
         body = ['\t'.join([name, path]) for name, path in zip(samples, targets)]
 

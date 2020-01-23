@@ -29,8 +29,30 @@ from rnaseqde.task.de_edger import DeEdgerTask
 import rnaseqde.utils as utils
 
 
-def run(opt, assets=None):
+def init_dry_run_option(opt):
     Task.dry_run = opt['--dry-run']
+
+    steps = {
+        'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
+        'quant': [
+            QuantKallistoTask, QuantStringtieTask, DeCuffdiffTask,
+            ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
+            ConvCuffdiffToRawTask, ConvAnyToRawTask
+            ],
+        'de': [DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
+    }
+
+    if opt['--resume-from'] in ['quant', 'de']:
+        for t in steps['align']:
+            t.dry_run = True
+
+    if opt['--resume-from'] in ['de']:
+        for t in steps['quant']:
+            t.dry_run = True
+
+
+def run(opt, assets=None):
+    init_dry_run_option(opt)
 
     # Override
     assets = utils.load_conf('config/assets_ercc.yml')
@@ -39,6 +61,9 @@ def run(opt, assets=None):
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
     # Queue alignment tasks
+    if opt['--resume-from'] in ['quant', 'de']:
+        Task.dry_run = True
+
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
@@ -52,8 +77,12 @@ def run(opt, assets=None):
         ConvSamToBamTask([t])
 
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
+    Task.dry_run = opt['--dry-run']
 
     # Queue quantification tasks
+    if opt['--resume-from'] in ['de']:
+        Task.dry_run = True
+
     for at in align_tasks:
         for t in at.instances:
             QuantStringtieTask([t])
@@ -69,6 +98,7 @@ def run(opt, assets=None):
         ConvRsemToMatrixTask([t])
 
     quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
+    Task.dry_run = opt['--dry-run']
 
     for qt in quant_tasks:
         for t in qt.instances:
