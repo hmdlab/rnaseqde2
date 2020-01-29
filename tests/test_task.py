@@ -4,7 +4,7 @@ This is test for rnaseqde.utils
 
 import unittest
 
-from rnaseqde.task.base import Task, DictWrapperTask
+from rnaseqde.task.base import DictWrapperTask
 from rnaseqde.task.align_hisat2 import AlignHisat2Task
 
 
