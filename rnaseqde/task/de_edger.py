@@ -22,7 +22,7 @@ class DeEdgerTask(CommandLineTask):
             required_tasks=None,
             output_dir=None,
             conf_path=None,
-            level='gene'):
+            level=None):
         super().__init__(required_tasks=required_tasks, output_dir=output_dir, conf_path=conf_path)
         self.level = level
 
@@ -50,6 +50,13 @@ class DeEdgerTask(CommandLineTask):
         return inputs_
 
     @property
+    def output_dir(self):
+        if self.level is None:
+            return super().output_dir
+
+        return os.path.join(super().output_dir, self.level)
+
+    @property
     def outputs(self):
         outputs_ = self._inputs
         groups_ = self._inputs['--group']
@@ -62,13 +69,12 @@ class DeEdgerTask(CommandLineTask):
             "--edger-{}-summary": 'summary.tsv'
             }
 
-        for v in ['gene', 'transcript']:
-            for key, val in binding.items():
-                outputs_[key.format(v)] = os.path.join(self.output_dir, v, val)
+        for key, val in binding.items():
+            outputs_[key.format(self.level)] = os.path.join(self.output_dir, self.level, val)
 
-            for c in combinations:
-                basename = "result_{}_vs_{}.tsv".format(c[0], c[1])
-                outputs_[f"--edger-{v}-result-tsv"] = os.path.join(self.output_dir, v, basename)
+        for c in combinations:
+            basename = "result_{}_vs_{}.tsv".format(c[0], c[1])
+            outputs_[f"--edger-{self.level}-result-tsv"] = os.path.join(self.output_dir, self.level, basename)
 
         return outputs_
 
@@ -96,23 +102,21 @@ def main():
     args = [None] * 1
     args[0] = opt_runtime['--count-mat-tsv']
 
-    for v in ['gene', 'transcript']:
-        opt['--output-dir'] = task.output_dir
-        opt['--level'] = v
+    opt['--output-dir'] = task.output_dir
 
-        cmd = "{base} {script} {opt} {args}".format(
-            base='Rscript',
-            script=utils.from_root('scripts/de_edger.R'),
-            opt=utils.optdict_to_str(opt),
-            args=' '.join(args)
-        )
+    cmd = "{base} {script} {opt} {args}".format(
+        base='Rscript',
+        script=utils.from_root('scripts/de_edger.R'),
+        opt=utils.optdict_to_str(opt),
+        args=' '.join(args)
+    )
 
-        sys.stderr.write("Command: {}\n".format(cmd))
+    sys.stderr.write("Command: {}\n".format(cmd))
 
-        if not opt_runtime['--dry-run']:
-            os.makedirs(task.output_dir, exist_ok=True)
-            proc = subprocess.run(cmd, shell=True, capture_output=True)
-            utils.puts_captured_output(proc, task.output_dir)
+    if not opt_runtime['--dry-run']:
+        os.makedirs(task.output_dir, exist_ok=True)
+        proc = subprocess.run(cmd, shell=True, capture_output=True)
+        utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':

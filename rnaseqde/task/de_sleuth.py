@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
-#$ -l s_vmem=64G -l mem_req=64G
+#$ -l s_vmem=32G -l mem_req=32G
 #$ -cwd
 #$ -o ugelogs/
 #$ -e ugelogs/

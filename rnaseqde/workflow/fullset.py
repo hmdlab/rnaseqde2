@@ -33,11 +33,11 @@ def init_dry_run_option(opt):
     steps = {
         'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
         'quant': [
-            QuantKallistoTask, QuantStringtieTask, DeCuffdiffTask,
+            QuantKallistoTask, QuantStringtieTask,
             ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
             ConvCuffdiffToRawTask, ConvAnyToRawTask
             ],
-        'de': [DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
+        'de': [DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
     }
 
     if opt['--resume-from'] in ['quant', 'de']:
@@ -109,7 +109,7 @@ def run(opt, assets):
 
     for t in ConvAnyToRawTask.instances:
         for v in ['gene', 'transcript']:
-            DeEdgerTask([t])
+            DeEdgerTask([t], level=v)
 
     # Check outputs of each task
     EndTask(

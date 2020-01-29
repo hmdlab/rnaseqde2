@@ -3,13 +3,12 @@
 'Perform DE analysis using edgeR
 
 Usage:
-  de_edger [--nofilter] --sample-sheet <PATH> --level <TYPE> [--output-dir <PATH>] <count-mat-tsv>
+  de_edger [--nofilter] --sample-sheet <PATH> [--output-dir <PATH>] <count-mat-tsv>
 
 Options:
   --nofilter            : Disable filter [defalt: FALSE]
   --sample-sheet <PATH> : Sample sheet file
   --output-dir <PATH>   : Output directory [default: .]
-  --level <TYPE>        : Analysis level (transcript/gene)
   <count-mat-tsv>       : Count matrix file
 
 ' -> doc
@@ -21,10 +20,7 @@ library(docopt)
 argv <- docopt(doc)
 sample_sheet_path <- argv$`sample-sheet`
 output_dir <- argv$`output-dir`
-level <- argv$level
 count_mat_path <- argv$`count-mat-tsv`
-
-output_dir <- file.path(output_dir, level)
 
 # Requires
 library(edgeR)

@@ -67,7 +67,7 @@ def main():
     Wrapper for UGE: Convert quantified data to raw count using tximport
 
     Usage:
-        conv_any2raw_tximport [options] --type <TYPE> --input <PATH>...
+        conv_any2raw_tximport [options] --gtf <PATH> --type <TYPE> --input <PATH>...
 
     Options:
         --gtf <PATH>         : GTF annotation file
