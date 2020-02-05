@@ -250,10 +250,13 @@ class ArrayTask(CommandLineTask):
 
 
 class DictWrapperTask(Task):
+    instances = []
+
     def __init__(self, opt: dict, output_dir=''):
         self._opt = opt
         self._output_dir = output_dir
         self._job_id = None
+        self.register()
 
     def run(self):
         pass

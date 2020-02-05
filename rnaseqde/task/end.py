@@ -35,7 +35,6 @@ class EndTask(Task):
     def inputs(self):
         inputs_ = [output for task in self.required_tasks for output in task.outputs.values() if output]
         inputs_excluded = [output for task in self.excluded_tasks for output in task.outputs.values() if output]
-
         inputs_ = set(utils.flatten(inputs_)) - set(utils.flatten(inputs_excluded))
 
         return inputs_
@@ -52,19 +51,20 @@ class EndTask(Task):
 def main():
     task_outputs = sys.argv[1:]
 
-    # HUCK: Use try except
+    # HACK: Use try except
     error_occured = False
     messages = []
 
     cwd = utils.actpath_to_sympath(os.getcwd())
 
     for output in task_outputs:
-        if cwd not in output:
+        # NOTE: If a path is relpath, append current directory
+        if cwd not in os.path.expandvars(output):
             output_ = os.path.join(cwd, output)
         else:
             output_ = output
 
-        if not os.path.exists(output_):
+        if not utils.exists(output_):
             messages.append("[ERR] {} doesn't exists.".format(output))
             error_occured = True
 

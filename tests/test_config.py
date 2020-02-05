@@ -2,27 +2,12 @@
 This is test for rnaseqde.utils
 """
 
-import os
-import glob
 import unittest
 
 import rnaseqde.utils as utils
 
 
 class TestConfig(unittest.TestCase):
-    @classmethod
-    def is_exist_ambiguously(cls, path):
-        path = os.path.expandvars(path)
-
-        if os.path.exists(path):
-            return True
-        else:
-            list_ = glob.glob(f"{path}*")
-            if list_:
-                return True
-
-        return False
-
     def test_load_conf(self, relpath='config/assets.yml'):
         conf = utils.load_conf(relpath)
 
@@ -33,7 +18,7 @@ class TestConfig(unittest.TestCase):
                 for p in t.values():
                     paths.append(p)
 
-        existences = list(map(self.is_exist_ambiguously, paths))
+        existences = list(map(utils.exists, paths))
 
         for p, e in zip(paths, existences):
             print(

@@ -277,6 +277,19 @@ def dict_globed(dir):
     return dict_
 
 
+def exists(path, strict=False):
+    path = os.path.expandvars(path)
+
+    if os.path.exists(path):
+        return True
+
+    if not strict:
+        if glob.glob(f"{path}*"):
+            return True
+
+    return False
+
+
 # XXX:
 def nested_list_to_variables(nested_list_):
     for i, l in enumerate(nested_list_):

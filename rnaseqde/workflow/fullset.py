@@ -36,7 +36,7 @@ def init_dry_run_option(opt):
             QuantKallistoTask, QuantStringtieTask,
             ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
             ConvCuffdiffToRawTask, ConvAnyToRawTask
-            ],
+        ],
         'de': [DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
     }
 
@@ -54,7 +54,8 @@ def run(opt, assets):
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
-        annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
+        annotations = {k: v for k, v in annotations.items() if k ==
+                       opt['--annotation']}
 
     # Queue alignment tasks
     for k, v in annotations.items():
@@ -87,7 +88,8 @@ def run(opt, assets):
     for t in QuantRsemTask.instances:
         ConvRsemToMatrixTask([t])
 
-    quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
+    quant_tasks = [DeCuffdiffTask, QuantKallistoTask,
+                   QuantRsemTask, QuantStringtieTask]
     Task.dry_run = opt['--dry-run']
 
     for qt in quant_tasks:
