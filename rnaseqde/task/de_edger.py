@@ -70,11 +70,11 @@ class DeEdgerTask(CommandLineTask):
             }
 
         for key, val in binding.items():
-            outputs_[key.format(self.level)] = os.path.join(self.output_dir, self.level, val)
+            outputs_[key.format(self.level)] = os.path.join(self.output_dir, val)
 
         for c in combinations:
             basename = "result_{}_vs_{}.tsv".format(c[0], c[1])
-            outputs_[f"--edger-{self.level}-result-tsv"] = os.path.join(self.output_dir, self.level, basename)
+            outputs_[f"--edger-{self.level}-result-tsv"] = os.path.join(self.output_dir, basename)
 
         return outputs_
 
