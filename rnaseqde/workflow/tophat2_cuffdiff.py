@@ -15,7 +15,7 @@ def init_dry_run_option(opt):
     steps = {
         'align': [AlignTophat2Task],
         'quant': [],
-        'de': []
+        'de': [DeCuffdiffTask]
     }
 
     if opt['--resume-from'] in ['quant', 'de']:
@@ -35,9 +35,6 @@ def run(opt, assets):
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
     # Queue alignment tasks
-    if opt['--resume-from'] in ['quant', 'de']:
-        Task.dry_run = True
-
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)

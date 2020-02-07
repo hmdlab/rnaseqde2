@@ -37,9 +37,6 @@ def run(opt, assets):
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
     # Queue alignment tasks
-    if opt['--resume-from'] in ['quant', 'de']:
-        Task.dry_run = True
-
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
@@ -52,9 +49,6 @@ def run(opt, assets):
     align_tasks = [ConvSamToBamTask]
 
     # Queue quantification tasks
-    if opt['--resume-from'] in ['de']:
-        Task.dry_run = True
-
     for at in align_tasks:
         for t in at.instances:
             QuantStringtieTask([t])

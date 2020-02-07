@@ -34,12 +34,10 @@ def init_dry_run_option(opt):
 
     steps = {
         'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
-        'quant': [
-            QuantKallistoTask, QuantStringtieTask, DeCuffdiffTask,
-            ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
-            ConvCuffdiffToRawTask, ConvAnyToRawTask
-            ],
-        'de': [DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
+        'quant': [QuantKallistoTask, QuantStringtieTask, QuantRsemTask],
+        'de': [
+            ConvRsemToMatrixTask, ConvCuffdiffToRawTask, ConvAnyToRawTask,
+            DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
     }
 
     if opt['--resume-from'] in ['quant', 'de']:
@@ -54,16 +52,13 @@ def init_dry_run_option(opt):
 def run(opt, assets=None):
     init_dry_run_option(opt)
 
-    # Override
+    # Override config
     assets = utils.load_conf('config/assets_ercc.yml')
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
 
     # Queue alignment tasks
-    if opt['--resume-from'] in ['quant', 'de']:
-        Task.dry_run = True
-
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
@@ -79,9 +74,6 @@ def run(opt, assets=None):
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
 
     # Queue quantification tasks
-    if opt['--resume-from'] in ['de']:
-        Task.dry_run = True
-
     for at in align_tasks:
         for t in at.instances:
             QuantStringtieTask([t])
@@ -96,7 +88,8 @@ def run(opt, assets=None):
     for t in QuantRsemTask.instances:
         ConvRsemToMatrixTask([t])
 
-    quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
+    quant_tasks = [DeCuffdiffTask, QuantKallistoTask,
+                   QuantRsemTask, QuantStringtieTask]
 
     for qt in quant_tasks:
         for t in qt.instances:
@@ -117,7 +110,7 @@ def run(opt, assets=None):
 
     for t in ConvAnyToRawTask.instances:
         for v in ['gene', 'transcript']:
-            DeEdgerTask([t])
+            DeEdgerTask([t], level=v)
 
     # Check outputs of each task
     EndTask(

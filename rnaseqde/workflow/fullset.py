@@ -32,10 +32,7 @@ def init_dry_run_option(opt):
 
     steps = {
         'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
-        'quant': [
-            QuantKallistoTask, QuantStringtieTask,
-            ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
-            ConvCuffdiffToRawTask, ConvAnyToRawTask],
+        'quant': [QuantKallistoTask, QuantStringtieTask, QuantRsemTask],
         'de': [
             ConvRsemToMatrixTask, ConvCuffdiffToRawTask, ConvAnyToRawTask,
             DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
