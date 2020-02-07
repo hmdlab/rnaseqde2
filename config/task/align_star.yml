@@ -7,5 +7,5 @@
 --outSAMattributes: All
 --outSAMstrandField: intronMotif
 --outSAMheaderHD: "'@HD VN:1.4 SO:coordinate'"
---runThreadN: 4
+--runThreadN: 2
 --runRNGseed: 777
