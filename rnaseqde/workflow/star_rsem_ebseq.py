@@ -47,8 +47,6 @@ def run(opt, assets):
             DictWrapperTask(opt_, output_dir=k)
             ])
 
-    Task.dry_run = opt['--dry-run']
-
     # Queue quantification tasks
     if opt['--resume-from'] in ['de']:
         Task.dry_run = True
@@ -58,8 +56,6 @@ def run(opt, assets):
 
     for t in QuantRsemTask.instances:
         ConvRsemToMatrixTask([t])
-
-    Task.dry_run = opt['--dry-run']
 
     # Queue DE tasks
     for t in ConvRsemToMatrixTask.instances:

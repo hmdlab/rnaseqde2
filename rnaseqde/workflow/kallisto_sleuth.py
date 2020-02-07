@@ -44,8 +44,6 @@ def run(opt, assets):
         beginning = DictWrapperTask(opt_, output_dir=k)
         QuantKallistoTask([beginning])
 
-    Task.dry_run = opt['--dry-run']
-
     # Queue DE tasks
     for t in QuantKallistoTask.instances:
         DeSleuthTask([t])

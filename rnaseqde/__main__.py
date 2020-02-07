@@ -47,7 +47,8 @@ from rnaseqde.workflow import (
     star_rsem_ebseq,
     hisat2_stringtie_ballgown,
     kallisto_sleuth,
-    fullset_ercc
+    fullset_ercc,
+    check_outputs,
 )
 import rnaseqde.utils as utils
 
@@ -75,7 +76,8 @@ def _opt_validated(opt):
             'star-rsem-ebseq',
             'hisat2-stringtie-ballgown',
             'kallisto-sleuth',
-            'fullset-ercc'
+            'fullset-ercc',
+            'check-outputs'
             ),
         '--layout': Or('sr', 'pe'),
         '--strandness': Or('none', 'rf', 'fr'),
@@ -121,7 +123,8 @@ def main():
         'star-rsem-ebseq': star_rsem_ebseq,
         'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
         'kallisto-sleuth': kallisto_sleuth,
-        'fullset-ercc': fullset_ercc
+        'fullset-ercc': fullset_ercc,
+        'check-outputs': check_outputs,
     }
 
     wf = workflows[opt['--workflow']]

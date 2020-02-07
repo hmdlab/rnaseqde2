@@ -45,7 +45,6 @@ def run(opt, assets):
         AlignTophat2Task([beginning])
 
     align_tasks = [AlignTophat2Task]
-    Task.dry_run = opt['--dry-run']
 
     # Queue quantification and DE tasks
     for at in align_tasks:

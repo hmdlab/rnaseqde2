@@ -28,25 +28,8 @@ from rnaseqde.task.de_edger import DeEdgerTask
 
 
 def init_dry_run_option(opt):
-    Task.dry_run = opt['--dry-run']
-
-    steps = {
-        'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
-        'quant': [
-            QuantKallistoTask, QuantStringtieTask,
-            ConvStringtieToRawTask, QuantRsemTask, ConvRsemToMatrixTask,
-            ConvCuffdiffToRawTask, ConvAnyToRawTask
-        ],
-        'de': [DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
-    }
-
-    if opt['--resume-from'] in ['quant', 'de']:
-        for t in steps['align']:
-            t.dry_run = True
-
-    if opt['--resume-from'] in ['de']:
-        for t in steps['quant']:
-            t.dry_run = True
+    Task.dry_run = True
+    EndTask.dry_run = False
 
 
 def run(opt, assets):

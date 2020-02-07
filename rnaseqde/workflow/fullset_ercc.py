@@ -77,7 +77,6 @@ def run(opt, assets=None):
         ConvSamToBamTask([t])
 
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
-    Task.dry_run = opt['--dry-run']
 
     # Queue quantification tasks
     if opt['--resume-from'] in ['de']:
@@ -98,7 +97,6 @@ def run(opt, assets=None):
         ConvRsemToMatrixTask([t])
 
     quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantRsemTask, QuantStringtieTask]
-    Task.dry_run = opt['--dry-run']
 
     for qt in quant_tasks:
         for t in qt.instances:
