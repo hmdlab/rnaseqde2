@@ -27,7 +27,7 @@ from rnaseqde.task.conv_cuffdiff2raw import ConvCuffdiffToRawTask
 from rnaseqde.task.de_edger import DeEdgerTask
 
 
-def init_dry_run_option(opt):
+def init_options(opt):
     Task.dry_run = opt['--dry-run']
 
     steps = {
@@ -38,17 +38,24 @@ def init_dry_run_option(opt):
             DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
     }
 
-    if opt['--resume-from'] in ['quant', 'de']:
-        for t in steps['align']:
-            t.dry_run = True
+    if opt['--step-by-step'] is not None:
+        Task.dry_run = True
 
-    if opt['--resume-from'] in ['de']:
-        for t in steps['quant']:
-            t.dry_run = True
+        for t in steps[opt['--step-by-step']]:
+            t.dry_run = False
+
+    if opt['--resume-from'] is not None:
+        if opt['--resume-from'] in ['quant', 'de']:
+            for t in steps['align']:
+                t.dry_run = True
+
+        if opt['--resume-from'] in ['de']:
+            for t in steps['quant']:
+                t.dry_run = True
 
 
 def run(opt, assets):
-    init_dry_run_option(opt)
+    init_options(opt)
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:

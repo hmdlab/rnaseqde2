@@ -11,7 +11,7 @@ from rnaseqde.task.quant_stringtie import QuantStringtieTask
 from rnaseqde.task.de_ballgown import DeBallgownTask
 
 
-def init_dry_run_option(opt):
+def init_options(opt):
     Task.dry_run = opt['--dry-run']
 
     steps = {
@@ -19,6 +19,12 @@ def init_dry_run_option(opt):
         'quant': [QuantStringtieTask],
         'de': [DeBallgownTask]
     }
+
+    if opt['--step-by-step'] is not None:
+        Task.dry_run = True
+
+        for t in steps[opt['--step-by-step']]:
+            t.dry_run = False
 
     if opt['--resume-from'] in ['quant', 'de']:
         for t in steps['align']:
@@ -30,7 +36,7 @@ def init_dry_run_option(opt):
 
 
 def run(opt, assets):
-    init_dry_run_option(opt)
+    init_options(opt)
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:

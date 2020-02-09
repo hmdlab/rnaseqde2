@@ -9,7 +9,7 @@ from rnaseqde.task.quant_kallisto import QuantKallistoTask
 from rnaseqde.task.de_sleuth import DeSleuthTask
 
 
-def init_dry_run_option(opt):
+def init_options(opt):
     Task.dry_run = opt['--dry-run']
 
     steps = {
@@ -17,6 +17,12 @@ def init_dry_run_option(opt):
         'quant': [QuantKallistoTask],
         'de': [DeSleuthTask]
     }
+
+    if opt['--step-by-step'] is not None:
+        Task.dry_run = True
+
+        for t in steps[opt['--step-by-step']]:
+            t.dry_run = False
 
     if opt['--resume-from'] in ['quant', 'de']:
         for t in steps['align']:
@@ -28,7 +34,7 @@ def init_dry_run_option(opt):
 
 
 def run(opt, assets):
-    init_dry_run_option(opt)
+    init_options(opt)
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:

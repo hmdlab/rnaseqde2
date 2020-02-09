@@ -27,13 +27,13 @@ from rnaseqde.task.conv_cuffdiff2raw import ConvCuffdiffToRawTask
 from rnaseqde.task.de_edger import DeEdgerTask
 
 
-def init_dry_run_option(opt):
+def init_options(opt):
     Task.dry_run = True
     EndTask.dry_run = False
 
 
 def run(opt, assets):
-    init_dry_run_option(opt)
+    init_options(opt)
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:

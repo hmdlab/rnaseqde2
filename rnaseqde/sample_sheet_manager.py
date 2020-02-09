@@ -1,6 +1,6 @@
 """
 rnaseqde.sample_sheet_manager
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This module provide sample sheet utilities
 """

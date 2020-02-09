@@ -12,10 +12,11 @@ Options:
     --strandness <TYPE>   : Library strandness (none/rf/fr) [default: none]
     --reference <NAME>    : Reference name [default: grch38]
     --annotation <NAME>   : Annotation name (in the case using only one annotation)
+    --step-by-step <TYPE> : Run with step (align/quant/de)
     --resume-from <TYPE>  : Resume workflow from (align/quant/de)
     --dry-run             : Dry-run [default: False]
     <sample_sheet>        : Tab-delimited text that contained the following columns:
-                           sample; fastq1[fastq2]; group
+                            sample; fastq1[fastq2]; group
 
 Workflows:
     fullset (default)
@@ -47,8 +48,7 @@ from rnaseqde.workflow import (
     star_rsem_ebseq,
     hisat2_stringtie_ballgown,
     kallisto_sleuth,
-    fullset_ercc,
-    check_outputs,
+    check_outputs
 )
 import rnaseqde.utils as utils
 
@@ -88,6 +88,12 @@ def _opt_validated(opt):
             'gencode_basic',
             'gencode_refeseq',
             ),
+        '--step-by-step': Or(
+            None,
+            'align',
+            'quant',
+            'de'
+            ),
         '--resume-from': Or(
             None,
             'align',
@@ -109,6 +115,11 @@ def _opt_validated(opt):
 
 def main():
     opt = _opt_validated(docopt(__doc__))
+
+    if sum([True for k in ['--step-by-step', '--resume-from', '--dry-run'] if opt[k]]) > 1:
+        sys.stderr.write("--dry-run, --step-by-step and --resume-from cannot be specified at the same time.")
+        sys.exit(1)
+
     opt.update(
         SampleSheetManager(
             opt['<sample_sheet>'],
@@ -116,6 +127,8 @@ def main():
     )
 
     assets = utils.load_conf('config/assets.yml')
+    if opt['--workflow'].endswith('ercc'):
+        assets = utils.load_conf('config/assets_ercc.yml')
 
     workflows = {
         'fullset': fullset,
@@ -123,7 +136,7 @@ def main():
         'star-rsem-ebseq': star_rsem_ebseq,
         'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
         'kallisto-sleuth': kallisto_sleuth,
-        'fullset-ercc': fullset_ercc,
+        'fullset-ercc': fullset,
         'check-outputs': check_outputs,
     }
 
