@@ -142,7 +142,6 @@ def main():
 
     wf = workflows[opt['--workflow']]
     wf.run(opt, assets)
-    sys.exit(0)
 
 
 if __name__ == '__main__':

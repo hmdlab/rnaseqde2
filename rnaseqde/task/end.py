@@ -7,6 +7,7 @@
 
 import sys
 import os
+import csv
 from datetime import datetime
 
 import rnaseqde.utils as utils
@@ -16,28 +17,23 @@ from rnaseqde.task.base import Task
 class EndTask(Task):
     instances = []
 
-    def __init__(
-            self,
-            required_tasks=None,
-            excluded_tasks=None,
-            **kwargs):
-        super().__init__(required_tasks=required_tasks, **kwargs)
-        self.excluded_tasks = excluded_tasks
-
     def run(self):
         self.submit_query(
             script=self.script,
             opt_script=' '.join(self.inputs),
-            log=False
+            log=True
             )
 
     @property
     def inputs(self):
-        inputs_ = [output for task in self.required_tasks for output in task.outputs.values() if output]
-        inputs_excluded = [output for task in self.excluded_tasks for output in task.outputs.values() if output]
-        inputs_ = set(utils.flatten(inputs_)) - set(utils.flatten(inputs_excluded))
+        outputs = [(t.job_id, output) for t in self.required_tasks if t.job_id is not None for output in t.outputs.values() if output and isinstance(output, str)]
 
-        return inputs_
+        path = 'list_outputs.txt'
+        with open(path, 'w') as f:
+            for o in outputs:
+                f.write("{}\n".format("\t".join(o)))
+
+        return [path]
 
     @property
     def output_dir(self):
@@ -49,34 +45,40 @@ class EndTask(Task):
 
 
 def main():
-    task_outputs = sys.argv[1:]
+    input_ = sys.argv[1]
 
     # HACK: Use try except
-    error_occured = False
+    error_occurred = False
     messages = []
 
     cwd = utils.actpath_to_sympath(os.getcwd())
 
-    for output in task_outputs:
-        # NOTE: If a path is relpath, append current directory
-        if cwd not in os.path.expandvars(output):
-            output_ = os.path.join(cwd, output)
-        else:
-            output_ = output
+    with open(input_, 'r') as f:
+        reader = csv.reader(f, delimiter="\t")
 
-        if not utils.exists(output_):
-            messages.append("[ERR] {} doesn't exists.".format(output))
-            error_occured = True
+        for row in reader:
+            _jid = row[0]
+            _path = row[1]
 
-    if error_occured:
-        with open('failed.txt', 'w') as f:
-            sys.stderr.write("\n".join(messages))
-            f.write("\n".join(messages))
-    else:
-        messages.append('Processes are completed.')
+            if cwd not in os.path.expandvars(_path):
+                output_ = os.path.join(cwd, _path)
+            else:
+                output_ = _path
+
+            if not utils.exists(output_):
+                messages.append("[ERR] {}:{} doesn't exists.".format(_jid, _path))
+                error_occurred = True
+
+    if error_occurred:
         messages.append(datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
-        with open('completed.txt', 'w') as f:
+        with open('failed.txt', 'w') as f:
             f.write("\n".join(messages))
+        sys.exit(1)
+
+    messages.append('There are no errors.')
+    messages.append(datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
+    with open('successful.txt', 'w') as f:
+        f.write("\n".join(messages))
 
 
 if __name__ == '__main__':

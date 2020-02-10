@@ -44,6 +44,8 @@ def init_options(opt):
         for t in steps[opt['--step-by-step']]:
             t.dry_run = False
 
+        return
+
     if opt['--resume-from'] is not None:
         if opt['--resume-from'] in ['quant', 'de']:
             for t in steps['align']:
@@ -52,6 +54,8 @@ def init_options(opt):
         if opt['--resume-from'] in ['de']:
             for t in steps['quant']:
                 t.dry_run = True
+
+        return
 
 
 def run(opt, assets):
@@ -116,9 +120,5 @@ def run(opt, assets):
             DeEdgerTask([t], level=v)
 
     # Check outputs of each task
-    EndTask(
-        required_tasks=Task.instances,
-        excluded_tasks=DictWrapperTask.instances
-    )
-
     Task.run_all_tasks()
+    EndTask(Task.instances).run()

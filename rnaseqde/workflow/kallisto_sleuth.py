@@ -51,9 +51,5 @@ def run(opt, assets):
     for t in QuantKallistoTask.instances:
         DeSleuthTask([t])
 
-    EndTask(
-        required_tasks=Task.instances,
-        excluded_tasks=DictWrapperTask.instances
-    )
-
     Task.run_all_tasks()
+    EndTask(Task.instances).run()
