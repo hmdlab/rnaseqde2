@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
-#$ -pe def_slot 8
+#$ -pe def_slot 6
 #$ -l s_vmem=8G -l mem_req=8G
+#$ -l d_rt=192:00:00 -l s_rt=192:00:00
 #$ -cwd
 #$ -o ugelogs/
 #$ -e ugelogs/
