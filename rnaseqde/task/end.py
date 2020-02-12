@@ -9,6 +9,8 @@ import sys
 import os
 import csv
 from datetime import datetime
+from itertools import groupby
+from operator import itemgetter
 
 import rnaseqde.utils as utils
 from rnaseqde.task.base import Task
@@ -26,7 +28,7 @@ class EndTask(Task):
 
     @property
     def inputs(self):
-        outputs = [(t.job_id, output) for t in self.required_tasks if t.job_id is not None for output in t.outputs.values() if output and isinstance(output, str)]
+        outputs = [(t.job_id, output) for t in self.required_tasks if t.job_id is not None and not t.dry_run for output in t.outputs.values() if output and isinstance(output, str)]
 
         path = 'list_outputs.txt'
         with open(path, 'w') as f:
@@ -58,14 +60,16 @@ def main():
 
         for row in reader:
             _jid = row[0]
-            _path = row[1]
+            _path = os.path.expandvars(row[1])
 
-            if cwd not in os.path.expandvars(_path):
-                output_ = os.path.join(cwd, _path)
-            else:
-                output_ = _path
+            if '/' not in _path:
+                continue
 
-            if not utils.exists(output_):
+            if not utils.exists(_path):
+                if cwd not in _path:
+                    if utils.exists(os.path.join(cwd, _path)):
+                        continue
+
                 messages.append("[ERR] {}:{} doesn't exists.".format(_jid, _path))
                 error_occurred = True
 
