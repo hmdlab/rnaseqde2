@@ -73,6 +73,7 @@ def _opt_validated(opt):
             'fullset',
             'tophat2-cuffdiff',
             'star-rsem-ebseq',
+            'star-rsem-ebseq-gencode_refseq_noncode',
             'hisat2-stringtie-ballgown',
             'kallisto-sleuth',
             'fullset-ercc',
@@ -129,10 +130,14 @@ def main():
     if opt['--workflow'].endswith('ercc'):
         assets = utils.load_conf('config/assets_ercc.yml')
 
+    if opt['--workflow'].endswith('gencode_refseq_noncode'):
+        assets = utils.load_conf('config/assets_gencode_refseq_noncode.yml')
+
     workflows = {
         'fullset': fullset,
         'tophat2-cuffdiff': tophat2_cuffdiff,
         'star-rsem-ebseq': star_rsem_ebseq,
+        'star-rsem-ebseq-gencode_refseq_noncode': star_rsem_ebseq,
         'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
         'kallisto-sleuth': kallisto_sleuth,
         'fullset-ercc': fullset
