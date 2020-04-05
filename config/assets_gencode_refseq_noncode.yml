@@ -10,10 +10,12 @@ grch38:
   refseq:
     --gtf: ${MH_APP_SHARED}/assets/references/grch38/annotations/refseq/GCF_000001405.39_GRCh38.p13_genomic.formatted.gtf
     --star-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/star/GRCh38.primary_assembly.genome.GCF_000001405.39_GRCh38.p13_genomic.formatted
+    --kallisto-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/kallisto/GCF_000001405.39_GRCh38.p13_transcripts.formatted
     --rsem-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/rsem/GCF_000001405.39_GRCh38.p13_transcripts.formatted
     --ebseq-ngvector: ${MH_APP_SHARED}/assets/references/grch38/indexes/ebseq/GCF_000001405.39_GRCh38.p13_transcripts.formatted.ngvec
   noncode:
     --gtf: ${MH_APP_SHARED}/assets/references/grch38/annotations/noncode/NONCODEv5_hg38.lncAndGene_formatted.gtf
     --star-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/star/GRCh38.primary_assembly.genome.NONCODEv5_hg38.lncAndGene_formatted
+    --kallisto-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/kallisto/NONCODEv5_human_transcripts_formatted
     --rsem-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/rsem/NONCODEv5_human_transcripts_formatted
     --ebseq-ngvector: ${MH_APP_SHARED}/assets/references/grch38/indexes/ebseq/NONCODEv5_human_transcripts_formatted.ngvec
