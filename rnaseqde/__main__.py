@@ -13,6 +13,7 @@ Options:
     --reference <NAME>    : Reference name [default: grch38]
     --annotation <NAME>   : Annotation name (in the case using only one annotation)
     --step-by-step <TYPE> : Run with step (align/quant/de)
+    --assets <PATH>       : Assets yml path
     --resume-from <TYPE>  : Resume workflow from (align/quant/de)
     --dry-run             : Dry-run [default: False]
     <sample_sheet>        : Tab-delimited text that contained the following columns:
@@ -69,25 +70,19 @@ logger.addHandler(handler)
 def _opt_validated(opt):
     # TODO: Generate Schema object from config files
     schema = Schema({
+        '--annotation': Or(None, str),
+        '--reference': Or(None, str),
+        '--assets': Or(None, str),
         '--workflow': Or(
             'fullset',
             'tophat2-cuffdiff',
             'star-rsem-ebseq',
-            'star-rsem-ebseq-gencode_refseq_noncode',
             'hisat2-stringtie-ballgown',
             'kallisto-sleuth',
-            'fullset-ercc',
             'check-outputs'
             ),
         '--layout': Or('sr', 'pe'),
         '--strandness': Or('none', 'rf', 'fr'),
-        '--reference': Or(None, 'grch38'),
-        '--annotation': Or(
-            None,
-            'gencode',
-            'gencode_basic',
-            'gencode_refeseq',
-            ),
         '--step-by-step': Or(
             None,
             'align',
@@ -126,12 +121,33 @@ def main():
             (opt['--layout'] == 'pe')).to_dict()
     )
 
-    assets = utils.load_conf('config/assets.yml')
-    if opt['--workflow'].endswith('ercc'):
-        assets = utils.load_conf('config/assets_ercc.yml')
+    if opt['--assets'] is None:
+        assets = utils.load_conf('config/assets.yml')
+    else:
+        assets = utils.load_conf(opt['--assets'], rel=False)
 
-    if opt['--workflow'].endswith('gencode_refseq_noncode'):
-        assets = utils.load_conf('config/assets_gencode_refseq_noncode.yml')
+    print(assets)
+
+    def _exists_reference(key, assets):
+        keys_defined = [k for k in assets.keys()]
+        return key in keys_defined
+
+    def _exists_annotation(key, assets):
+        keys_defined = [k2 for v1 in assets.values() if type(v1) == dict for k2 in v1.keys()]
+        return key in keys_defined
+
+    # HACK: Move to _opt_validated
+    if opt['--reference']:
+        if not _exists_reference(opt['--reference'], assets):
+            sys.stderr.write("Invalid options were specified:\n")
+            sys.stderr.write("reference: {}".format(opt['--reference']))
+            sys.exit(1)
+
+    if opt['--annotation']:
+        if not _exists_annotation(opt['--annotation'], assets):
+            sys.stderr.write("Invalid options were specified:\n")
+            sys.stderr.write("annotation: {}".format(opt['--annotation']))
+            sys.exit(1)
 
     workflows = {
         'fullset': fullset,
