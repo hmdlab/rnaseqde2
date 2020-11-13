@@ -34,7 +34,7 @@ class DeSleuthTask(CommandLineTask):
     def outputs(self):
         outputs_ = self._inputs
         outputs_.update({
-            f"--sleuth-{v}-result-tsv": os.path.join(self.output_dir, f"result_{v}.tsv") for v in ['gene', 'transcript']
+            f"--sleuth-{v}-result-{t}-tsv": os.path.join(self.output_dir, f"result_{v}_{t}.tsv") for v in ['gene', 'transcript'] for t in ['lrt', 'wt']
             })
 
         return outputs_
