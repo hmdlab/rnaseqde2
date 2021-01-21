@@ -17,8 +17,8 @@ Options:
 library(docopt)
 argv <- docopt(doc)
 
-sample_sheet_path <- argv$`sample-sheet`
-output_dir <- argv$`output-dir`
+sample_sheet_path <- argv$`sample_sheet`
+output_dir <- argv$`output_dir`
 gtf_path <- argv$gtf
 kallisto_h5_path <- argv$h5
 
@@ -33,6 +33,8 @@ s2c <- read.table(
   header = TRUE,
   sep = '\t',
   stringsAsFactors = FALSE) %>% select(sample, group)
+
+wt_beta <- paste0('group', max(levels(factor(s2c$group))))
 
 kallisto_dirs <- kallisto_h5_path %>% dirname
 names(kallisto_dirs) <- kallisto_dirs %>% basename
@@ -65,7 +67,7 @@ so <- sleuth_prep(s2c,
 so <- sleuth_fit(so)
 so <- sleuth_fit(so, ~ 1, 'reduced')
 so <- sleuth_lrt(so, 'reduced', 'full')
-so <- sleuth_wt(so, 'groupCTRL')
+so <- sleuth_wt(so, wt_beta)
 
 # Show models
 models(so)
@@ -79,8 +81,8 @@ sleuth_table_gene_lrt %>% write_tsv(file.path(output_dir, 'result_gene_lrt.tsv')
 results_table_tx_lrt <- sleuth_results(so, 'reduced:full', test_type = 'lrt', show_all = FALSE,  pval_aggregate = FALSE)
 results_table_tx_lrt %>% write_tsv(file.path(output_dir, 'result_transcript_lrt.tsv'))
 
-sleuth_table_gene_wt <- sleuth_results(so, 'groupCTRL', test_type = 'wt', show_all = FALSE)
+sleuth_table_gene_wt <- sleuth_results(so, wt_beta, test_type = 'wt', show_all = FALSE)
 sleuth_table_gene_wt %>% write_tsv(file.path(output_dir, 'result_gene_wt.tsv'))
 
-results_table_tx_wt <- sleuth_results(so, 'groupCTRL', test_type = 'wt', show_all = FALSE,  pval_aggregate = FALSE)
+results_table_tx_wt <- sleuth_results(so, wt_beta, test_type = 'wt', show_all = FALSE,  pval_aggregate = FALSE)
 results_table_tx_wt %>% write_tsv(file.path(output_dir, 'result_transcript_wt.tsv'))

@@ -3,7 +3,7 @@
 'Convert any tool results to tximport count matrix
 
 Usage:
-  conv_any2raw_tximport --gtf <PATH> --type <TYPE> [--output-dir <PATH>] <input>...
+  conv_any2raw --gtf <PATH> --type <TYPE> [--output-dir <PATH>] <input>...
 
 Options:
   --gtf <PATH>         : GTF file
@@ -17,8 +17,10 @@ Options:
 library(docopt)
 argv <- docopt(doc)
 
+print(argv)
+
 gtf_path <- argv$gtf
-output_dir <- argv$`output-dir`
+output_dir <- argv$`output_dir`
 type <- argv$type
 inputs <- argv$input
 

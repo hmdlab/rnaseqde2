@@ -24,8 +24,8 @@ library(docopt)
 argv <- docopt(doc)
 
 ngvector_file <- argv$`ngvector`
-data_matrix_file <- argv$`count-mat-tsv`
-output_dir <- argv$`output-dir`
+data_matrix_file <- argv$`count_mat_tsv`
+output_dir <- argv$`output_dir`
 output_file <- file.path(output_dir, "result.tsv")
 norm_out_file <- paste0(output_file, ".normalized_data_matrix")
 

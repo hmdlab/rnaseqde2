@@ -3,7 +3,7 @@
 'Convert cuffdiff results to count matrix
 
 Usage:
-  conv_any2raw_tximport [--output-dir <PATH>] <input>
+  conv_cuffdiff2raw [--output-dir <PATH>] <input>
 
 Options:
   --output-dir <PATH>  : Output directory [default: .]
@@ -15,9 +15,8 @@ Options:
 library(docopt)
 argv <- docopt(doc)
 
-output_dir <- argv$`output-dir`
+output_dir <- argv$`output_dir`
 input <- argv$`input`
-
 
 # Requires
 

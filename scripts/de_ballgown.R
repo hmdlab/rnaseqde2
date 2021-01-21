@@ -19,8 +19,8 @@ options(stringAsFactors = FALSE)
 # Reading in args
 library(docopt)
 argv <- docopt(doc)
-sample_sheet_path <- argv$`sample-sheet`
-output_dir <- argv$`output-dir`
+sample_sheet_path <- argv$`sample_sheet`
+output_dir <- argv$`output_dir`
 gtf <- argv$gtf
 ctab <- argv$ctab
 
