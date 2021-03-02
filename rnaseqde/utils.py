@@ -42,11 +42,10 @@ def actpath_to_sympath(abspath_actual):
     return sympath_
 
 
-def load_conf(path, rel=True, strict=True):
-    _conv_path = from_root if rel else lambda x: x
+def load_conf(path, strict=True):
 
     try:
-        with open(_conv_path(path)) as f:
+        with open(path) as f:
             dict_ = yaml.safe_load(f)
     except FileNotFoundError as e:
         if strict:

@@ -24,11 +24,7 @@ class Task(metaclass=ABCMeta):
     instances = []
     dry_run = False
 
-    def __init__(
-            self,
-            required_tasks=None,
-            output_dir=None):
-
+    def __init__(self, required_tasks=None, output_dir=None):
         self.required_tasks = required_tasks
         self._output_dir = output_dir
         self._job_id = None
@@ -48,29 +44,28 @@ class Task(metaclass=ABCMeta):
             script = self.script
 
         def _build_command():
-            if not os.environ.get('SGE_TASK_ID', None):
+            if not os.environ.get("SGE_TASK_ID", None):
                 cmd = "{script} {opt_script}".format(
-                    script=script,
-                    opt_script=opt_script
-                    )
+                    script=script, opt_script=opt_script
+                )
                 return cmd
 
             opt = {
-                '-V': True,
-                '-terse': True,
-                '-N': self.task_name,
-                '-hold_jid': self.qsub_hold_job_ids
+                "-V": True,
+                "-terse": True,
+                "-N": self.task_name,
+                "-hold_jid": self.qsub_hold_job_ids,
             }
 
             if opt_qsub is not None:
                 opt.update(opt_qsub)
 
             cmd = "{base} {opt} {script} {opt_script}".format(
-                base='qsub',
+                base="qsub",
                 opt=utils.optdict_to_str(opt),
                 script=script,
-                opt_script=opt_script
-                )
+                opt_script=opt_script,
+            )
             return cmd
 
         cmd = _build_command()
@@ -81,16 +76,19 @@ class Task(metaclass=ABCMeta):
         if not self.__class__.dry_run:
             proc = subprocess.run(cmd, shell=True, capture_output=True)
 
-        if not self.__class__.dry_run and os.environ.get('SGE_TASK_ID', None):
-            self.job_id = proc.stdout
-        else:
+        if not os.environ.get("SGE_TASK_ID", None):
+            proc = subprocess.run(cmd, shell=True, capture_output=True)
             self._job_id = str(random.randrange(1000))
+            logger.info("\n{}".format(proc.stderr.decode()))
+
+        if not self.__class__.dry_run and os.environ.get("SGE_TASK_ID", None):
+            self.job_id = proc.stdout
 
         logger.info("Job_ID: {} was submitted.".format(self.job_id))
 
     def register(self):
         self.__class__.instances.append(self)
-        if not self.__class__.__name__ == 'Task':
+        if not self.__class__.__name__ == "Task":
             Task.instances.append(self)
 
     def upper(self):
@@ -102,11 +100,11 @@ class Task(metaclass=ABCMeta):
 
     @job_id.setter
     def job_id(self, stdout: bytes):
-        self._job_id = stdout.decode().strip().split('.')[0]
+        self._job_id = stdout.decode().strip().split(".")[0]
 
     @property
     def task_name(self):
-        return re.sub(r"_task$", '', utils.snake_cased(self.__class__.__name__))
+        return re.sub(r"_task$", "", utils.snake_cased(self.__class__.__name__))
 
     @property
     def script(self):
@@ -116,11 +114,17 @@ class Task(metaclass=ABCMeta):
     def qsub_hold_job_ids(self):
         if self.required_tasks is not None:
             try:
-                job_ids = ','.join(
-                    set([task.job_id for task in set(self.required_tasks) if task.job_id is not None])
+                job_ids = ",".join(
+                    set(
+                        [
+                            task.job_id
+                            for task in set(self.required_tasks)
+                            if task.job_id is not None
+                        ]
+                    )
                 )
 
-                if job_ids == '':
+                if job_ids == "":
                     return None
 
                 return job_ids
@@ -145,20 +149,35 @@ class Task(metaclass=ABCMeta):
 
 
 class CommandLineTask(Task):
-    def __init__(
-            self,
-            required_tasks=None,
-            output_dir=None,
-            conf_path=None):
+    def __init__(self, required_tasks=None, output_dir=None, conf=None):
         super().__init__(required_tasks=required_tasks, output_dir=output_dir)
-        conf_path = conf_path if conf_path else "config/task/{}.yml".format(self.task_name)
-        self.conf = utils.load_conf(conf_path, strict=False)
+
+        if conf:
+            self.conf_path = (
+                os.path.abspath(os.path.join(conf, "{}.yml".format(self.task_name)))
+                if os.path.isdir(conf)
+                else os.path.abspath(conf)
+            )
+        else:
+            self.conf_path = utils.from_root("config/task/{}.yml".format(self.task_name))
+
+        if os.path.exists(self.conf_path):
+            logger.debug(f"Configure file loaded: {self.conf_path}\n")
+            self.conf = utils.load_conf(self.conf_path, strict=False)
+        else:
+            self.conf_path = None
+            self.conf = {}
 
     def run(self):
+        _opt = self.inputs
+
+        if self.conf_path:
+            _opt = {**_opt, **{'--conf': self.conf_path}}
+
         self.submit_query(
             script=self.script,
-            opt_script=utils.optdict_to_str(self.inputs)
-            )
+            opt_script=utils.optdict_to_str(_opt),
+        )
 
     @property
     def _inputs(self):
@@ -194,16 +213,21 @@ class CommandLineTask(Task):
 
 class ArrayTask(CommandLineTask):
     def run(self):
+        _opt = self.inputs
+
+        if self.conf_path:
+            _opt = {**_opt, **{'--conf': self.conf_path}}
+
         self.submit_query(
             script=self.script,
-            opt_script=utils.optdict_to_str(self.inputs),
-            opt_qsub={'-t': self.qsub_threads}
-            )
+            opt_script=utils.optdict_to_str(_opt),
+            opt_qsub={"-t": self.qsub_threads},
+        )
 
     @classmethod
     def scattered(cls, inputs):
         try:
-            sge_task_id = os.environ.get('SGE_TASK_ID', None)
+            sge_task_id = os.environ.get("SGE_TASK_ID", None)
             sge_task_id = int(sge_task_id)
         except ValueError:
             pass
@@ -225,9 +249,7 @@ class ArrayTask(CommandLineTask):
         return self._n_tasks()
 
     def _qsub_threads(self, step=1):
-        return "1-{n}:{step}".format(
-            n=str(self.n_tasks),
-            step=step)
+        return "1-{n}:{step}".format(n=str(self.n_tasks), step=step)
 
     @property
     def qsub_threads(self):
@@ -252,7 +274,7 @@ class ArrayTask(CommandLineTask):
 class DictWrapperTask(Task):
     instances = []
 
-    def __init__(self, opt: dict, output_dir=''):
+    def __init__(self, opt: dict, output_dir=""):
         self._opt = opt
         self._output_dir = output_dir
         self._job_id = None

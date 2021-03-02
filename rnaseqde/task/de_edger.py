@@ -21,9 +21,9 @@ class DeEdgerTask(CommandLineTask):
             self,
             required_tasks=None,
             output_dir=None,
-            conf_path=None,
+            conf_dir=None,
             level=None):
-        super().__init__(required_tasks=required_tasks, output_dir=output_dir, conf_path=conf_path)
+        super().__init__(required_tasks=required_tasks, output_dir=output_dir)
         self.level = level
 
     @property

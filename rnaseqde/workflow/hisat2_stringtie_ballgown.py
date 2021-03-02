@@ -38,6 +38,8 @@ def init_options(opt):
 def run(opt, assets):
     init_options(opt)
 
+    conf = opt.pop('--conf')
+
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
@@ -47,22 +49,22 @@ def run(opt, assets):
         opt_ = deepcopy(opt)
         opt_.update(v)
         beginning = DictWrapperTask(opt_, output_dir=k)
-        AlignHisat2Task([beginning])
+        AlignHisat2Task([beginning], conf=conf)
 
     for t in AlignHisat2Task.instances:
-        ConvSamToBamTask([t])
+        ConvSamToBamTask([t], conf=conf)
 
     align_tasks = [ConvSamToBamTask]
 
     # Queue quantification tasks
     for at in align_tasks:
         for t in at.instances:
-            QuantStringtieTask([t])
+            QuantStringtieTask([t], conf=conf)
 
 
     # Queue DE tasks
     for t in QuantStringtieTask.instances:
-        DeBallgownTask([t])
+        DeBallgownTask([t], conf=conf)
 
     Task.run_all_tasks()
     EndTask(Task.instances).run()

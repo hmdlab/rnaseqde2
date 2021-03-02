@@ -15,7 +15,7 @@ class TestConfig(unittest.TestCase):
 
         for c in configs:
             print(f"Checking {c}...")
-            conf = utils.load_conf(c)
+            conf = utils.load_conf(utils.from_root(c))
 
             # NOTE: Structure: genome-annotation-tool-path(value)
             paths = []

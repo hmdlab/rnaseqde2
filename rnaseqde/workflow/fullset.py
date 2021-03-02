@@ -1,8 +1,9 @@
 #! /usr/bin/env python3
 
 from copy import deepcopy
+from functools import partial
 
-from rnaseqde.task.base import Task, DictWrapperTask
+from rnaseqde.task.base import Task, CommandLineTask, DictWrapperTask
 from rnaseqde.task.end import EndTask
 
 from rnaseqde.task.align_star import AlignStarTask
@@ -53,13 +54,15 @@ def init_options(opt):
 
         if opt['--resume-from'] in ['de']:
             for t in steps['quant']:
-                t.dry_run = True
+                t.dry_run = Truee
 
         return
 
 
 def run(opt, assets):
     init_options(opt)
+
+    conf = opt.pop('--conf')
 
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
@@ -69,31 +72,31 @@ def run(opt, assets):
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
-        beginning = DictWrapperTask(opt_, output_dir=k)
-        AlignStarTask([beginning])
-        AlignHisat2Task([beginning])
-        AlignTophat2Task([beginning])
-        QuantKallistoTask([beginning])
+        beginning = DictWrapperTask(opt_)
+        AlignStarTask([beginning], conf=conf)
+        AlignHisat2Task([beginning], conf=conf)
+        AlignTophat2Task([beginning], conf=conf)
+        QuantKallistoTask([beginning], conf=conf)
 
     for t in AlignHisat2Task.instances:
-        ConvSamToBamTask([t])
+        ConvSamToBamTask([t], conf=conf)
 
     align_tasks = [AlignStarTask, ConvSamToBamTask, AlignTophat2Task]
 
     # Queue quantification tasks
     for at in align_tasks:
         for t in at.instances:
-            QuantStringtieTask([t])
-            DeCuffdiffTask([t])
+            QuantStringtieTask([t], conf=conf)
+            DeCuffdiffTask([t], conf=conf)
 
     for t in QuantStringtieTask.instances:
-        ConvStringtieToRawTask([t])
+        ConvStringtieToRawTask([t], conf=conf)
 
     for t in AlignStarTask.instances:
-        QuantRsemTask([t])
+        QuantRsemTask([t], conf=conf)
 
     for t in QuantRsemTask.instances:
-        ConvRsemToMatrixTask([t])
+        ConvRsemToMatrixTask([t], conf=conf)
 
     quant_tasks = [DeCuffdiffTask, QuantKallistoTask,
                    QuantRsemTask, QuantStringtieTask]
@@ -101,23 +104,23 @@ def run(opt, assets):
     for qt in quant_tasks:
         for t in qt.instances:
             if isinstance(t, DeCuffdiffTask):
-                ConvCuffdiffToRawTask([t])
+                ConvCuffdiffToRawTask([t], conf=conf)
                 continue
             ConvAnyToRawTask([t])
 
     # Queue DE tasks
     for t in ConvRsemToMatrixTask.instances:
-        DeEbseqTask([t])
+        DeEbseqTask([t], conf=conf)
 
     for t in QuantStringtieTask.instances:
-        DeBallgownTask([t])
+        DeBallgownTask([t], conf=conf)
 
     for t in QuantKallistoTask.instances:
-        DeSleuthTask([t])
+        DeSleuthTask([t], conf=conf)
 
     for t in ConvAnyToRawTask.instances:
         for v in ['gene', 'transcript']:
-            DeEdgerTask([t], level=v)
+            DeEdgerTask([t], conf=conf, level=v)
 
     # Check outputs of each task
     Task.run_all_tasks()

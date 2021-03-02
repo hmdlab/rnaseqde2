@@ -95,7 +95,7 @@ def main():
 
     task = AlignHisat2Task(
         output_dir=opt_runtime['--output-dir'],
-        conf_path=opt_runtime['--conf']
+        conf=opt_runtime['--conf']
     )
 
     if opt_runtime['--layout'] == 'sr':

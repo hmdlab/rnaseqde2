@@ -8,6 +8,7 @@ Usage:
 
 Options:
     --workflow <TYPE>     : Workflow [default: fullset]
+    --conf <PATH>         : Directory contain configure files for each tool
     --layout <TYPE>       : Library layout (sr/pe) [default: sr]
     --strandness <TYPE>   : Library strandness (none/rf/fr) [default: none]
     --reference <NAME>    : Reference name [default: grch38]
@@ -81,6 +82,7 @@ def _opt_validated(opt):
             'kallisto-sleuth',
             'check-outputs'
             ),
+        '--conf': Or(None, str),
         '--layout': Or('sr', 'pe'),
         '--strandness': Or('none', 'rf', 'fr'),
         '--step-by-step': Or(
@@ -122,11 +124,9 @@ def main():
     )
 
     if opt['--assets'] is None:
-        assets = utils.load_conf('config/assets.yml')
+        assets = utils.load_conf(utils.from_root('config/assets.yml'))
     else:
-        assets = utils.load_conf(opt['--assets'], rel=False)
-
-    print(assets)
+        assets = utils.load_conf(opt['--assets'])
 
     def _exists_reference(key, assets):
         keys_defined = [k for k in assets.keys()]

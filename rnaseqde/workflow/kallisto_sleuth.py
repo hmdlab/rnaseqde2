@@ -36,6 +36,8 @@ def init_options(opt):
 def run(opt, assets):
     init_options(opt)
 
+    conf = opt.pop('--conf')
+
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
@@ -45,11 +47,11 @@ def run(opt, assets):
         opt_ = deepcopy(opt)
         opt_.update(v)
         beginning = DictWrapperTask(opt_, output_dir=k)
-        QuantKallistoTask([beginning])
+        QuantKallistoTask([beginning], conf=conf)
 
     # Queue DE tasks
     for t in QuantKallistoTask.instances:
-        DeSleuthTask([t])
+        DeSleuthTask([t], conf=conf)
 
     Task.run_all_tasks()
     EndTask(Task.instances).run()

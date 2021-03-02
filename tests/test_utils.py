@@ -2,7 +2,6 @@
 This is test for rnaseqde.utils
 """
 
-import os
 import unittest
 
 import rnaseqde.utils as utils
@@ -12,7 +11,7 @@ class TestUtils(unittest.TestCase):
     def test_load_conf(self):
         relpath = 'tests/test.yml'
 
-        conf = utils.load_conf(relpath)
+        conf = utils.load_conf(utils.from_root(relpath))
 
         expected = 'path_to_baz'
         actual = conf['foo']['bar']

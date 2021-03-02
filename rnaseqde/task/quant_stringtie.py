@@ -75,7 +75,7 @@ def main():
     opt_runtime = utils.docmopt(main.__doc__)
     task = QuantStringtieTask(
         output_dir=opt_runtime['--output-dir'],
-        conf_path=opt_runtime['--conf']
+        conf=opt_runtime['--conf']
     )
 
     binding = {

@@ -36,6 +36,8 @@ def init_options(opt):
 def run(opt, assets):
     init_options(opt)
 
+    conf = opt.pop('--conf')
+
     annotations = assets[opt['--reference']]
     if opt['--annotation']:
         annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
@@ -45,14 +47,14 @@ def run(opt, assets):
         opt_ = deepcopy(opt)
         opt_.update(v)
         beginning = DictWrapperTask(opt_, output_dir=k)
-        AlignTophat2Task([beginning])
+        AlignTophat2Task([beginning], conf=conf)
 
     align_tasks = [AlignTophat2Task]
 
     # Queue quantification and DE tasks
     for at in align_tasks:
         for t in at.instances:
-            DeCuffdiffTask([t])
+            DeCuffdiffTask([t], conf=conf)
 
     Task.run_all_tasks()
     EndTask(Task.instances).run()

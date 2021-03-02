@@ -12,54 +12,54 @@ from rnaseqde.task.de_ebseq import DeEbseqTask
 
 
 def init_options(opt):
-    Task.dry_run = opt['--dry-run']
+    Task.dry_run = opt["--dry-run"]
 
     steps = {
-        'align': [AlignStarTask],
-        'quant': [QuantRsemTask, ConvRsemToMatrixTask],
-        'de': [DeEbseqTask]
+        "align": [AlignStarTask],
+        "quant": [QuantRsemTask, ConvRsemToMatrixTask],
+        "de": [DeEbseqTask],
     }
 
-    if opt['--step-by-step'] is not None:
+    if opt["--step-by-step"] is not None:
         Task.dry_run = True
 
-        for t in steps[opt['--step-by-step']]:
+        for t in steps[opt["--step-by-step"]]:
             t.dry_run = False
 
-    if opt['--resume-from'] in ['quant', 'de']:
-        for t in steps['align']:
+    if opt["--resume-from"] in ["quant", "de"]:
+        for t in steps["align"]:
             t.dry_run = True
 
-    if opt['--resume-from'] in ['de']:
-        for t in steps['quant']:
+    if opt["--resume-from"] in ["de"]:
+        for t in steps["quant"]:
             t.dry_run = True
 
 
 def run(opt, assets):
     init_options(opt)
 
-    annotations = assets[opt['--reference']]
-    if opt['--annotation']:
-        annotations = {k: v for k, v in annotations.items() if k == opt['--annotation']}
+    conf = opt.pop('--conf')
+
+    annotations = assets[opt["--reference"]]
+    if opt["--annotation"]:
+        annotations = {k: v for k, v in annotations.items() if k == opt["--annotation"]}
 
     # Queue alignment tasks
     for k, v in annotations.items():
         opt_ = deepcopy(opt)
         opt_.update(v)
-        AlignStarTask([
-            DictWrapperTask(opt_, output_dir=k)
-            ])
+        AlignStarTask([DictWrapperTask(opt_, output_dir=k)], conf=conf)
 
     # Queue quantification tasks
     for t in AlignStarTask.instances:
-        QuantRsemTask([t])
+        QuantRsemTask([t], conf=conf)
 
     for t in QuantRsemTask.instances:
-        ConvRsemToMatrixTask([t])
+        ConvRsemToMatrixTask([t], conf=conf)
 
     # Queue DE tasks
     for t in ConvRsemToMatrixTask.instances:
-        DeEbseqTask([t])
+        DeEbseqTask([t], conf=conf)
 
     Task.run_all_tasks()
     EndTask(Task.instances).run()
