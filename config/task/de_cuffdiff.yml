@@ -1,0 +1,3 @@
+--emit-count-tables: true
+--max-bundle-frags: 100000000
+--num-threads: 6

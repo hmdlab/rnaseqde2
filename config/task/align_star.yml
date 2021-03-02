@@ -1,0 +1,11 @@
+--readFilesCommand: zcat
+--readNameSeparator: "'|'"
+--limitBAMsortRAM: 48000000000
+--outReadsUnmapped: Fastx
+--outSAMtype: "BAM SortedByCoordinate"
+--quantMode: TranscriptomeSAM
+--outSAMattributes: All
+--outSAMstrandField: intronMotif
+--outSAMheaderHD: "'@HD VN:1.4 SO:coordinate'"
+--runThreadN: 2
+--runRNGseed: 777

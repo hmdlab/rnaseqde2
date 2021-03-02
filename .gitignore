@@ -1,14 +1,14 @@
 ## User defined ##
-# test dataset
-/tests/dataset
+/tests/datasets
 
 # tmporary files
 /tmp
+/containers
 
-# Excepted dotfiles 
+# Excepted dotfiles
 .*
 !.gitignore
-!.bashrc_env
+!.gitkeep
 
 ### OSX ###
 .DS_Store

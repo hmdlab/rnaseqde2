@@ -1,0 +1,25 @@
+grch38:
+  gencode:
+    --gtf: ${MH_APP_SHARED}/assets/references/grch38/annotations/gencode/gencode.v31.annotation.gtf
+    --tophat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/bowtie2/GRCh38.primary_assembly.genome
+    --hisat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/hisat2/GRCh38.primary_assembly.genome.gencode.v31.annotation
+    --star-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/star/GRCh38.primary_assembly.genome.gencode.v31.annotation
+    --kallisto-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/kallisto/gencode.v31.transcripts.formatted
+    --rsem-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/rsem/gencode.v31.transcripts.formatted
+    --ebseq-ngvector: ${MH_APP_SHARED}/assets/references/grch38/indexes/ebseq/gencode.v31.transcripts.formatted.ngvec
+  gencode_basic:
+    --gtf: ${MH_APP_SHARED}/assets/references/grch38/annotations/gencode/gencode.v31.basic.annotation.gtf
+    --tophat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/bowtie2/GRCh38.primary_assembly.genome
+    --hisat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/hisat2/GRCh38.primary_assembly.genome.gencode.v31.basic.annotation
+    --star-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/star/GRCh38.primary_assembly.genome.gencode.v31.basic.annotation
+    --kallisto-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/kallisto/gencode.v31.basic.transcripts.formatted
+    --rsem-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/rsem/gencode.v31.basic.transcripts.formatted
+    --ebseq-ngvector: ${MH_APP_SHARED}/assets/references/grch38/indexes/ebseq/gencode.v31.basic.transcripts.formatted.ngvec
+  gencode_refseq:
+    --gtf: ${MH_APP_SHARED}/assets/references/grch38/annotations/gencode_refseq/gencode.v31_refseq.v109.20190607.gtf
+    --tophat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/bowtie2/GRCh38.primary_assembly.genome
+    --hisat2-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/hisat2/GRCh38.primary_assembly.genome.gencode.v31_refseq.v109.20190607
+    --star-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/star/GRCh38.primary_assembly.genome.gencode.v31_refseq.v109.20190607
+    --kallisto-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/kallisto/gencode.v31_refseq.v109.20190607.transcripts.formatted
+    --rsem-index: ${MH_APP_SHARED}/assets/references/grch38/indexes/rsem/gencode.v31_refseq.v109.20190607.transcripts.formatted
+    --ebseq-ngvector: ${MH_APP_SHARED}/assets/references/grch38/indexes/ebseq/gencode.v31_refseq.v109.20190607.transcripts.formatted.ngvec

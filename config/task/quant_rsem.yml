@@ -1,0 +1,7 @@
+--bam: true
+--estimate-rspd: true
+--calc-ci: true
+--seed: 12345
+--no-bam-output: true
+--num-threads: 4
+--ci-memory: 61440
