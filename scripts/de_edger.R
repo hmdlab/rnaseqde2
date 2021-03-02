@@ -77,7 +77,7 @@ min_replicates <- function (groups) {
 
 write_tsv_from <- function (x, path, from) {
   path <- file.path(from, path)
-  x %>% write_tsv(path = path, col_names = TRUE)
+  x %>% write_tsv(file = path, col_names = TRUE)
 }
 
 

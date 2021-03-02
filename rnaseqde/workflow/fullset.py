@@ -120,7 +120,7 @@ def run(opt, assets):
 
     for t in ConvAnyToRawTask.instances:
         for v in ['gene', 'transcript']:
-            DeEdgerTask([t], conf=conf, level=v)
+            DeEdgerTask([t], level=v)
 
     # Check outputs of each task
     Task.run_all_tasks()
