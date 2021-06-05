@@ -1,9 +1,9 @@
 #! /usr/bin/env Rscript
 
-'Perform DE analysis using edgeR
+"Perform DE analysis using edgeR
 
 Usage:
-  de_edger [--nofilter] --sample-sheet <PATH> [--output-dir <PATH>] <count-mat-tsv>
+  de_edger.R [--nofilter] --sample-sheet <PATH> [--output-dir <PATH>] <count-mat-tsv>
 
 Options:
   --nofilter            : Disable filter [defalt: FALSE]
@@ -11,128 +11,115 @@ Options:
   --output-dir <PATH>   : Output directory [default: .]
   <count-mat-tsv>       : Count matrix file
 
-' -> doc
+" -> doc
 
-options(stringAsFactors = FALSE)
 
-# Reading in args
-library(docopt)
-argv <- docopt(doc)
-sample_sheet_path <- argv$`sample_sheet`
-output_dir <- argv$`output_dir`
-count_mat_path <- argv$`count_mat_tsv`
-
-# Requires
 library(edgeR)
 library(tidyverse)
 
 
-# Function definitions
-extract_degs <- function(expressions, groups, comparisions, from){
-  CUTOFF_RAW  <- 10.0
-  results_et <- list()
+options(stringAsFactors = FALSE)
 
-  # calc dispersion
-  dge <- DGEList(counts = expressions, group = groups)
+argv <- docopt::docopt(doc)
+sample_sheet_path <- argv$`sample_sheet`
+output_dir <- argv$`output_dir`
+count_mat_path <- argv$`count_mat_tsv`
 
-  # NOTE: --nofilter option
-  if (!argv$nofilter) {
-    keep <- rowSums(dge$counts > CUTOFF_RAW) %>% {. >= min_replicates(groups)}
-    dge_filt <- dge[keep, , keep.lib.sizes = FALSE]
-  } else {
-    dge_filt <- dge
-  }
+CUTOFF_RAW <- 10.0
 
-  if (min_replicates(groups) > 1) {
-    dge_filt <- calcNormFactors(dge_filt)
-    dge_filt <- estimateCommonDisp(dge_filt)
-    dge_filt <- estimateTagwiseDisp(dge_filt)
-  }
+count_mat <-
+  read.table(
+    count_mat_path,
+    header = TRUE,
+    sep = "\t",
+    row.names = 1,
+    stringsAsFactors = FALSE
+  ) %>%
+  as.matrix %>%
+  apply(c(1, 2), ceiling)
 
-  dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID') %>% write_tsv_from('expressions_cpm.tsv', from)
+count_mat <- count_mat[, c(1, 4)]
 
-  expressions_cpm <- dge_filt %>% cpm %>% data.frame %>% rownames_to_column(var = 'GeneID')
+sample_sheet <-
+  read.table(
+    sample_sheet_path,
+    header = TRUE,
+    sep = "\t",
+    stringsAsFactors = FALSE
+  )
+groups <- sample_sheet$group %>%
+  set_names(sample_sheet$sample)
 
-  for (i in 1:nrow(comparisions)) {
-    s1 <- comparisions[i, ]$sample_1 %>% as.character
-    s2 <- comparisions[i, ]$sample_2 %>% as.character
+contrasts <- expand.grid(
+  group_1 = unique(groups),
+  group_2 = unique(groups),
+  stringsAsFactors = FALSE
+)
+keep <-
+  as.numeric(factor(contrasts$group_1, levels = unique(groups))) > as.numeric(factor(contrasts$group_2, levels = unique(groups)))
 
-    if (min_replicates(groups) > 1) {
-      et <- exactTest(dge_filt, pair = c(s1, s2))
-    } else {
-      # set squuare root dispersion for human
-      message('There is no replication, setting dispersion to typical value.')
-      bcv <- 0.4
-      et <- exactTest(dge_filt, pair = c(s1, s2), dispersion = bcv^2)
+contrasts <- contrasts[keep,]
+
+groups <- groups[colnames(count_mat)]
+y <- DGEList(counts = count_mat, group = groups)
+
+.min_replicates <- function(groups) {
+  groups %>%
+    table %>%
+    min %>%
+    as.numeric
+}
+
+if (!argv$nofilter) {
+  keep <-
+    rowSums(y$counts > CUTOFF_RAW) %>% {
+      . >= .min_replicates(groups)
     }
-    results_et[[i]] <- et
-  }
-  return(list(results_et, expressions_cpm))
+  y <- y[keep, , keep.lib.sizes = FALSE]
 }
 
-min_replicates <- function (groups) {
-  min_samples_per_group <- groups %>% table %>% min %>% as.numeric
-  return(min_samples_per_group)
+y <- calcNormFactors(y)
+
+if (.min_replicates(groups) > 1) {
+  y <- estimateCommonDisp(y)
+  y <- estimateTagwiseDisp(y)
 }
 
-write_tsv_from <- function (x, path, from) {
-  path <- file.path(from, path)
-  x %>% write_tsv(file = path, col_names = TRUE)
+log2cpm_mat_norm <- y %>%
+  cpm(log = TRUE, normalized.lib.sizes = TRUE) %>%
+  data.frame %>%
+  rownames_to_column(var = "feature_id")
+
+if (.min_replicates(groups) <= 1) {
+  message(
+    "The experiment has no replicates, set the constant to a dispersion parameter (0.4 for humans)."
+  )
+  .dispersion <- 0.4 ^ 2
+} else {
+  .dispersion <- "auto"
 }
 
+results_et <- map2(
+  contrasts$group_1,
+  contrasts$group_2,
+  ~ exactTest(y, pair = c(.y, .x), dispersion = .dispersion)
+) %>% set_names(paste(contrasts$group_1, contrasts$group_2, sep = "_vs_"))
 
-# Main
-## Load data
-expressions <- read.table(count_mat_path, header = TRUE, sep = '\t', row.names = 1) %>% as.matrix
-sample_sheet <- read.table(sample_sheet_path, header = TRUE, sep = '\t', stringsAsFactors = FALSE)
-groups <- sample_sheet$group
-comparisions <- expand.grid(sample_1 = unique(groups), sample_2 = unique(groups), stringsAsFactors = FALSE)
+dir.create(file.path(output_dir),
+           showWarnings = FALSE,
+           recursive = TRUE)
 
-## Create pair-wise comparisions
-## HACK: To Simple
-keep <- as.numeric(factor(comparisions$sample_1, levels = unique(groups))) < as.numeric(factor(comparisions$sample_2,  levels = unique(groups)))
-comparisions <- comparisions[keep, ]
-
-## Perform exact test
-dir.create(file.path(output_dir), showWarnings = FALSE, recursive = TRUE)
-degs <- extract_degs(expressions, groups, comparisions, output_dir)
-results_et <- degs[[1]]
-expressions_cpm <- degs[[2]]
-
-## Merge result tables
-table_merged <- data.frame()
-for (i in 1:length(results_et)) {
-  et <- results_et[[i]]
-
-  comparison <- et$comparison %>% paste(collapse = '_vs_')
-  output <- paste0('result_', comparison, '.tsv')
-  top_tags <- et %>% topTags(n = nrow(et$table)) %>% as.data.frame
-
-  # export each table
-  top_tags <- top_tags %>% rownames_to_column(var = 'GeneID')
-  top_tags %>% write_tsv_from(path = output, from = output_dir)
-
-  # export merge table
-  colnames(top_tags)[-1] <- paste(comparison, colnames(top_tags)[-1] , sep = '_')
-  if (i == 1) {
-    table_merged <- top_tags
-  } else {
-    table_merged <- table_merged %>% left_join(top_tags, by = 'GeneID')
-  }
+.save_edger <- function(x, output_path) {
+  x %>%
+    topTags(., n = nrow(.)) %>%
+    data.frame %>%
+    rownames_to_column(var = "feature_id") %>%
+    write_tsv(output_path)
 }
 
-## Create TSV
-colnames(expressions_cpm)[-1] <- paste(colnames(expressions_cpm)[-1], 'CPM',  sep = '_')
-table_merged <- table_merged %>% left_join(expressions_cpm, by = 'GeneID')
-table_merged %>% arrange(GeneID) %>% write_tsv_from(path = 'combined.tsv', from = output_dir)
+map2(results_et,
+     names(results_et),
+     ~ .save_edger(.x, file.path(output_dir, paste0("et_", .y, ".tsv"))))
 
-
-# Create summary
-comparisons <- c()
-degs_counts <- c()
-for (i in 1:length(results_et)) {
-  comparisons <- comparisons %>% c(results_et[[i]]$comparison %>% paste(collapse = '_vs_'))
-  degs_counts <- degs_counts %>% c(topTags(results_et[[i]],  n = nrow(results_et[[i]]$table)) %>% as.data.frame %>% rownames_to_column %>% filter(FDR < 0.05 & abs(logFC) > 1) %>% nrow)
-}
-
-data.frame(comparison = comparisons, count = degs_counts) %>% write_tsv_from('summary.tsv', from = output_dir)
+log2cpm_mat_norm %>%
+  write_tsv(file.path(output_dir, "log2cpm_mat_norm.tsv"))

@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
-# $ -S $HOME/.pyenv/shims/python3
-# $ -l s_vmem=32G -l mem_req=32G
-# $ -cwd
-# $ -o ugelogs/
-# $ -e ugelogs/
+#$ -S $HOME/.pyenv/shims/python3
+#$ -l s_vmem=32G -l mem_req=32G
+#$ -cwd
+#$ -o ugelogs/
+#$ -e ugelogs/
 
 import sys
 import os

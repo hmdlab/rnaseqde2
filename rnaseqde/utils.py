@@ -53,6 +53,10 @@ def load_conf(path, strict=True):
             sys.exit()
 
         dict_ = {}
+
+    if dict_ is None:
+        return {}
+
     return dict_
 
 

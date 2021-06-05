@@ -48,6 +48,12 @@ class ConvAnyToRawTask(CommandLineTask):
                     '--input': upper_class.outputs['--ctab']
                 }
 
+            if n == 'QuantSalmonTask':
+                return {
+                    '--type': 'salmon',
+                    '--input': upper_class.outputs['--sf']
+                }
+
         inputs_.update(_opt(self.upper()))
 
         return inputs_
@@ -71,11 +77,11 @@ def main():
 
     Options:
         --gtf <PATH>         : GTF annotation file
-        --type <TYPE>        : Input type (kallisto/rsem/stringtie)
+        --type <TYPE>        : Input type (kallisto/rsem/stringtie/salmon)
         --output-dir <PATH>  : Output directory [default: .]
         --dry-run            : Dry-run [default: False]
         --input <PATH>...    : Output(s) of quantifier;
-                               (K) abundance.h5, (R) quantified.isoforms.results, (S) t_data.ctab
+                               kallisto: abundance.h5, RSEM: quantified.isoforms.results, StringTie: t_data.ctab, Salmon: quant.sf
 
     """
 

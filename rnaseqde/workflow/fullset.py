@@ -23,6 +23,9 @@ from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
 from rnaseqde.task.quant_kallisto import QuantKallistoTask
 from rnaseqde.task.de_sleuth import DeSleuthTask
 
+from rnaseqde.task.quant_salmon import QuantSalmonTask
+from rnaseqde.task.de_deseq2 import DeDeseq2Task
+
 from rnaseqde.task.conv_any2raw import ConvAnyToRawTask
 from rnaseqde.task.conv_cuffdiff2raw import ConvCuffdiffToRawTask
 from rnaseqde.task.de_edger import DeEdgerTask
@@ -33,10 +36,10 @@ def init_options(opt):
 
     steps = {
         'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
-        'quant': [QuantKallistoTask, QuantStringtieTask, QuantRsemTask],
+        'quant': [QuantKallistoTask, QuantStringtieTask, QuantRsemTask, QuantSalmonTask],
         'de': [
             ConvRsemToMatrixTask, ConvCuffdiffToRawTask, ConvAnyToRawTask,
-            DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask]
+            DeCuffdiffTask, DeEbseqTask, DeBallgownTask, DeSleuthTask, DeEdgerTask, DeDeseq2Task]
     }
 
     if opt['--step-by-step'] is not None:
@@ -77,6 +80,7 @@ def run(opt, assets):
         AlignHisat2Task([beginning], conf=conf)
         AlignTophat2Task([beginning], conf=conf)
         QuantKallistoTask([beginning], conf=conf)
+        QuantSalmonTask([beginning], conf=conf)
 
     for t in AlignHisat2Task.instances:
         ConvSamToBamTask([t], conf=conf)
@@ -98,7 +102,7 @@ def run(opt, assets):
     for t in QuantRsemTask.instances:
         ConvRsemToMatrixTask([t], conf=conf)
 
-    quant_tasks = [DeCuffdiffTask, QuantKallistoTask,
+    quant_tasks = [DeCuffdiffTask, QuantKallistoTask, QuantSalmonTask,
                    QuantRsemTask, QuantStringtieTask]
 
     for qt in quant_tasks:
@@ -121,6 +125,7 @@ def run(opt, assets):
     for t in ConvAnyToRawTask.instances:
         for v in ['gene', 'transcript']:
             DeEdgerTask([t], level=v)
+            DeDeseq2Task([t], conf=conf, level=v)
 
     # Check outputs of each task
     Task.run_all_tasks()
