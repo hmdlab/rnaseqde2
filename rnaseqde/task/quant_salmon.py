@@ -132,6 +132,12 @@ def main():
 
     opt.update(opt_[opt_runtime['--strandness']])
 
+    if opt_runtime['--strandness'] == 'none':
+        try:
+            opt['--libType'] = task.conf['--libType']
+        except KeyError:
+            pass
+
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['-o'] = task.suboutput_dir(s)
 
@@ -147,9 +153,9 @@ def main():
         )
 
         sys.stderr.write("Command: {}\n".format(cmd))
+        os.makedirs(task.suboutput_dir(s), exist_ok=True)
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(task.suboutput_dir(s), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, capture_output=True)
             utils.puts_captured_output(proc, task.suboutput_dir(s))
 

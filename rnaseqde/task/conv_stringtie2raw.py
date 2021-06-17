@@ -69,28 +69,27 @@ def main():
 
     task.output_dir = opt_runtime['--output-dir']
 
-    if not opt_runtime['--dry-run']:
-        os.makedirs(task.output_dir, exist_ok=True)
-        list_targets = task.puts_list_targets(
-            opt_runtime['--quantified-gtf'],
-            opt_runtime['--sample']
-            )
+    os.makedirs(task.output_dir, exist_ok=True)
+    list_targets = task.puts_list_targets(
+        opt_runtime['--quantified-gtf'],
+        opt_runtime['--sample']
+        )
 
-        opt = {
-            '-i': list_targets,
-            '-g': task.outputs['--gene-mat-csv'],
-            '-t': task.outputs['--transcript-mat-csv']
-        }
+    opt = {
+        '-i': list_targets,
+        '-g': task.outputs['--gene-mat-csv'],
+        '-t': task.outputs['--transcript-mat-csv']
+    }
 
-        cmd = "{base} {opt}".format(
-            base='prepDE.py',
-            opt=utils.optdict_to_str(opt)
-            )
+    cmd = "{base} {opt}".format(
+        base='prepDE.py',
+        opt=utils.optdict_to_str(opt)
+        )
 
-        sys.stderr.write("Command: {}\n".format(cmd))
+    sys.stderr.write("Command: {}\n".format(cmd))
 
-        proc = subprocess.run(cmd, shell=True, capture_output=True)
-        utils.puts_captured_output(proc, task.output_dir)
+    proc = subprocess.run(cmd, shell=True, capture_output=True)
+    utils.puts_captured_output(proc, task.output_dir)
 
 
 if __name__ == '__main__':
