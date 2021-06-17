@@ -132,6 +132,12 @@ def main():
 
     opt.update(opt_[opt_runtime['--strandness']])
 
+    if opt_runtime['--strandness'] == 'none':
+        try:
+            opt['--libType'] = task.conf['--libType']
+        except KeyError:
+            pass
+
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
         opt['-o'] = task.suboutput_dir(s)
 
