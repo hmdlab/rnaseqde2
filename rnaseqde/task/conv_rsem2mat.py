@@ -75,9 +75,9 @@ def main():
             )
 
         sys.stderr.write("Command: {}\n".format(cmd))
+        os.makedirs(output_dir_, exist_ok=True)
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(output_dir_, exist_ok=True)
             proc = subprocess.run(cmd, shell=True, capture_output=True)
             utils.puts_captured_output(proc, output_dir_)
 

@@ -113,9 +113,9 @@ def main():
         )
 
         sys.stderr.write("Command: {}\n".format(cmd))
+        os.makedirs(task.suboutput_dir(b), exist_ok=True)
 
         if not opt_runtime['--dry-run']:
-            os.makedirs(task.suboutput_dir(b), exist_ok=True)
             proc = subprocess.run(cmd, shell=True, capture_output=True)
             utils.puts_captured_output(proc, task.suboutput_dir(b))
 

@@ -11,6 +11,7 @@ from rnaseqde.task.de_cuffdiff import DeCuffdiffTask
 
 def init_options(opt):
     Task.dry_run = opt['--dry-run']
+    Task.ar_id = opt['--ar']
 
     steps = {
         'align': [AlignTophat2Task],

@@ -5,7 +5,7 @@ RNA-Seq DE analysis pipeline using Universal Grid Engine on NIG supercomputer
 ## Usage:
 
 
-```
+```sh
 Usage:
     rnaseqde [options] <sample_sheet>
 
@@ -19,6 +19,7 @@ Options:
     --step-by-step <TYPE> : Run with step (align/quant/de)
     --assets <PATH>       : Assets yml path
     --resume-from <TYPE>  : Resume workflow from (align/quant/de)
+    --ar <ID>             : Advanced Reservation ID (only specify when using UGE)
     --dry-run             : Dry-run [default: False]
     <sample_sheet>        : Tab-delimited text that contained the following columns:
                             sample; fastq1[fastq2]; group
@@ -29,6 +30,7 @@ Workflows:
     star-rsem-ebseq
     hisat2-stringtie-ballgown
     kallisto-sleuth
+    salmon-deseq2
 
 Supported references:
     grch38 (default)

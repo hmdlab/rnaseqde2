@@ -13,6 +13,7 @@ from rnaseqde.task.de_ebseq import DeEbseqTask
 
 def init_options(opt):
     Task.dry_run = opt["--dry-run"]
+    Task.ar_id = opt['--ar']
 
     steps = {
         "align": [AlignStarTask],

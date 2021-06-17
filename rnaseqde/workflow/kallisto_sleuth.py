@@ -11,6 +11,7 @@ from rnaseqde.task.de_sleuth import DeSleuthTask
 
 def init_options(opt):
     Task.dry_run = opt['--dry-run']
+    Task.ar_id = opt['--ar']
 
     steps = {
         'align': [],

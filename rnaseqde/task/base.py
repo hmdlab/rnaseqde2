@@ -23,6 +23,7 @@ logger = getLogger(__name__)
 class Task(metaclass=ABCMeta):
     instances = []
     dry_run = False
+    ar_id = None
 
     def __init__(self, required_tasks=None, output_dir=None):
         self.required_tasks = required_tasks
@@ -64,7 +65,7 @@ class Task(metaclass=ABCMeta):
                 base="qsub",
                 opt=utils.optdict_to_str(opt),
                 script=script,
-                opt_script=opt_script,
+                opt_script=utils.optdict_to_str(opt_script)
             )
             return cmd
 
@@ -174,9 +175,14 @@ class CommandLineTask(Task):
         if self.conf_path:
             _opt = {**_opt, **{'--conf': self.conf_path}}
 
+        _opt_qsub = {}
+        if self.__class__.ar_id:
+            _opt_qsub.update({"-ar": self.__class__.ar_id})
+
         self.submit_query(
             script=self.script,
-            opt_script=utils.optdict_to_str(_opt),
+            opt_script=_opt,
+            opt_qsub=_opt_qsub
         )
 
     @property
@@ -218,10 +224,15 @@ class ArrayTask(CommandLineTask):
         if self.conf_path:
             _opt = {**_opt, **{'--conf': self.conf_path}}
 
+        _opt_qsub = {"-t": self.qsub_threads}
+
+        if self.__class__.ar_id:
+            _opt_qsub.update({"-ar": self.__class__.ar_id})
+
         self.submit_query(
             script=self.script,
-            opt_script=utils.optdict_to_str(_opt),
-            opt_qsub={"-t": self.qsub_threads},
+            opt_script=_opt,
+            opt_qsub=_opt_qsub
         )
 
     @classmethod

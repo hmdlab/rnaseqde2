@@ -33,6 +33,7 @@ from rnaseqde.task.de_edger import DeEdgerTask
 
 def init_options(opt):
     Task.dry_run = opt['--dry-run']
+    Task.ar_id = opt['--ar']
 
     steps = {
         'align': [AlignStarTask, AlignHisat2Task, AlignTophat2Task, ConvSamToBamTask],
@@ -57,7 +58,7 @@ def init_options(opt):
 
         if opt['--resume-from'] in ['de']:
             for t in steps['quant']:
-                t.dry_run = Truee
+                t.dry_run = True
 
         return
 
