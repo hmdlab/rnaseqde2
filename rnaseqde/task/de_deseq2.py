@@ -14,15 +14,11 @@ import rnaseqde.utils as utils
 from rnaseqde.task.base import CommandLineTask
 
 
-class DeEdgerTask(CommandLineTask):
+class DeDeseq2Task(CommandLineTask):
     instances = []
 
-    def __init__(
-            self,
-            required_tasks=None,
-            output_dir=None,
-            level=None):
-        super().__init__(required_tasks=required_tasks, output_dir=output_dir)
+    def __init__(self, required_tasks=None, output_dir=None, conf=None, level=None):
+        super().__init__(required_tasks=required_tasks, output_dir=output_dir, conf=conf)
         self.level = level
 
     @property
@@ -56,14 +52,16 @@ class DeEdgerTask(CommandLineTask):
             itertools.combinations(sorted(set(groups_), key=groups_.index), 2)
         )
 
-        binding = {"--edger-{}-cpm-tsv": "expressions_cpm.tsv"}
+        binding = {
+            "--deseq2-{}-count-mat-tsv": "count_mat_norm.tsv",
+        }
 
         for k, v in binding.items():
             outputs_[k.format(self.level)] = os.path.join(self.output_dir, v)
 
         for c in combinations:
-            basename = "result_{}_vs_{}.tsv".format(c[0], c[1])
-            outputs_[f"--edger-{self.level}-result-tsv"] = os.path.join(
+            basename = "wald_{}_vs_{}.tsv".format(c[0], c[1])
+            outputs_[f"--deseq2-{self.level}-result-tsv"] = os.path.join(
                 self.output_dir, basename
             )
 
@@ -72,10 +70,10 @@ class DeEdgerTask(CommandLineTask):
 
 def main():
     """
-    Wrapper for UGE: Perform DE analysis using edgeR
+    Wrapper for UGE: Perform DE analysis using DESeq2
 
     Usage:
-        de_edger [options] --sample-sheet --count-mat-tsv
+        de_deseq2 [options] --sample-sheet --count-mat-tsv
 
     Options:
         --sample-sheet <PATH>        : Sample sheet
@@ -86,7 +84,7 @@ def main():
     """
 
     opt_runtime = utils.docmopt(main.__doc__)
-    task = DeEdgerTask(output_dir=opt_runtime["--output-dir"])
+    task = DeDeseq2Task(output_dir=opt_runtime["--output-dir"])
 
     opt = utils.dictfilter(opt_runtime, exclude=["--count-mat-tsv", "--dry-run"])
 
@@ -97,7 +95,7 @@ def main():
 
     cmd = "{base} {script} {opt} {args}".format(
         base="Rscript",
-        script=utils.from_root("scripts/de_edger.R"),
+        script=utils.from_root("scripts/de_deseq2.R"),
         opt=utils.optdict_to_str(opt),
         args=" ".join(args),
     )

@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 #$ -S $HOME/.pyenv/shims/python3
-#$ -pe def_slot 4
-#$ -l s_vmem=8G -l mem_req=8G
+#$ -l s_vmem=16G -l mem_req=16G
 #$ -cwd
 #$ -o ugelogs/
 #$ -e ugelogs/
@@ -14,7 +13,7 @@ import rnaseqde.utils as utils
 from rnaseqde.task.base import ArrayTask
 
 
-class AlignTophat2Task(ArrayTask):
+class QuantSalmonTask(ArrayTask):
     instances = []
 
     @property
@@ -25,7 +24,7 @@ class AlignTophat2Task(ArrayTask):
         )
 
         inputs_.update({
-            '--index': self._inputs['--tophat2-index'],
+            '--index': self._inputs['--salmon-index'],
             '--output-dir': self.output_dir
             })
 
@@ -41,8 +40,7 @@ class AlignTophat2Task(ArrayTask):
 
     def suboutputs(self, input):
         binding = {
-            '--bam': 'accepted_hits.bam',
-            '--summary': 'align_summary.txt'
+            '--sf': 'quant.sf'
         }
 
         return self._suboutputs(input, binding)
@@ -58,11 +56,10 @@ class AlignTophat2Task(ArrayTask):
                 else:
                     return self.incrementer[0:2]
 
-        samples = _samples()
-
         outputs_ = self._inputs
+
         outputs_.update(
-            utils.dictcombine([self.suboutputs(s) for s in samples])
+            utils.dictcombine([self.suboutputs(s) for s in _samples()])
         )
 
         return outputs_
@@ -77,14 +74,13 @@ class AlignTophat2Task(ArrayTask):
 
 def main():
     """
-    Wrapper for UGE: Align reads to the reference genome using TopHat2
+    Wrapper for UGE: Quantify transcript abundance using Salmon
 
     Usage:
-        align_tophat2 [options] --index <PATH> --gtf <PATH> [--sample <STR>...] --fastq <PATH>...
+        quant_salmon [options] --index <PATH> [--sample <STR>...] --fastq <PATH>...
 
     Options:
         --index <PATH>       : Reference index file
-        --gtf <PATH>         : GTF annotation file
         --layout <TYPE>      : Library layout (sr/pe) [default: sr]
         --strandness <TYPE>  : Library strandness (none/rf/fr) [default: none]
         --output-dir <PATH>  : Output directory [default: .]
@@ -96,7 +92,7 @@ def main():
     """
 
     opt_runtime = utils.docmopt(main.__doc__)
-    task = AlignTophat2Task(
+    task = QuantSalmonTask(
         output_dir=opt_runtime['--output-dir'],
         conf=opt_runtime['--conf']
     )
@@ -119,34 +115,42 @@ def main():
         )
 
     binding = {
-        '--GTF': '--gtf'
+        '--index': '--index'
     }
 
     opt = utils.dictbind(task.conf, opt_runtime, binding)
 
     opt_ = {
-        'fr': {'--library-type': 'fr-secondstrand'},
-        'rf': {'--library-type': 'fr-firststrand'},
-        'none': {'--library-type': 'fr-unstranded'}
+        'fr': {'--libType': 'SF'},
+        'rf': {'--libType': 'SR'},
+        'none': {'--libType': 'U'}
     }
+
+    if opt_runtime['--layout'] == 'pe':
+        for k1, v1 in opt_.items():
+            opt_[k1] = {k2: f'I{v2}' for k2, v2 in v1.items()}
+
     opt.update(opt_[opt_runtime['--strandness']])
 
-    args = [None] * 2
-    args[0] = opt_runtime['--index']
+    if opt_runtime['--strandness'] == 'none':
+        try:
+            opt['--libType'] = task.conf['--libType']
+        except KeyError:
+            pass
 
     for f1, f2, s in zip(fastq1s, fastq2s, samples):
-        if f2 == '':
-            args[1] = f1
-        else:
-            args[1] = ' '.join([f1, f2])
-
         opt['-o'] = task.suboutput_dir(s)
 
-        cmd = "{base} {opt} {args}".format(
-            base='tophat2',
-            opt=utils.optdict_to_str(opt),
-            args=' '.join(args)
-            )
+        if f2 == '':
+            opt['-r'] = f1
+        else:
+            opt['-1'] = f1
+            opt['-2'] = f2
+
+        cmd = "{base} {opt}".format(
+            base='salmon quant',
+            opt=utils.optdict_to_str(opt)
+        )
 
         sys.stderr.write("Command: {}\n".format(cmd))
         os.makedirs(task.suboutput_dir(s), exist_ok=True)

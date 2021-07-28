@@ -26,6 +26,7 @@ Workflows:
     star-rsem-ebseq
     hisat2-stringtie-ballgown
     kallisto-sleuth
+    salmon-deseq2
 
 Supported references:
     grch38 (default)
@@ -49,7 +50,8 @@ from rnaseqde.workflow import (
     tophat2_cuffdiff,
     star_rsem_ebseq,
     hisat2_stringtie_ballgown,
-    kallisto_sleuth
+    kallisto_sleuth,
+    salmon_deseq2
 )
 import rnaseqde.utils as utils
 
@@ -80,6 +82,7 @@ def _opt_validated(opt):
             'star-rsem-ebseq',
             'hisat2-stringtie-ballgown',
             'kallisto-sleuth',
+            'salmon-deseq2',
             'check-outputs'
             ),
         '--conf': Or(None, str),
@@ -156,6 +159,7 @@ def main():
         'star-rsem-ebseq-gencode_refseq_noncode': star_rsem_ebseq,
         'hisat2-stringtie-ballgown': hisat2_stringtie_ballgown,
         'kallisto-sleuth': kallisto_sleuth,
+        'salmon-deseq2': salmon_deseq2,
         'fullset-ercc': fullset
     }
 

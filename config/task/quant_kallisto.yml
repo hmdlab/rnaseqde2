@@ -1,4 +1,5 @@
 --seed: 12345
+-t: 1
 -b: 100
 --pseudobam: true
 --genomebam: true

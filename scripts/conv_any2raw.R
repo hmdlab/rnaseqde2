@@ -7,17 +7,15 @@ Usage:
 
 Options:
   --gtf <PATH>         : GTF file
-  --type <PATH>        : stringtie/kallisto/rsem
+  --type <PATH>        : stringtie/kallisto/rsem/salmon
   --output-dir <PATH>  : Output directory [default: .]
   <input>              : Count data file;
-                         (K) abundance.h5, (R) quantified.isoforms.results, (S) t_data.ctab
+                         kallisto: abundance.h5, RSEM: quantified.isoforms.results, StringTie: t_data.ctab, Salmon: quant.sf
 ' -> doc
 
 # Reading in args
 library(docopt)
 argv <- docopt(doc)
-
-print(argv)
 
 gtf_path <- argv$gtf
 output_dir <- argv$`output_dir`

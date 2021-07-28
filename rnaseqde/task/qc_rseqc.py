@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
-# $ -S $HOME/.pyenv/shims/python3
-# $ -l s_vmem=32G -l mem_req=32G
-# $ -cwd
-# $ -o ugelogs/
-# $ -e ugelogs/
+#$ -S $HOME/.pyenv/shims/python3
+#$ -l s_vmem=32G -l mem_req=32G
+#$ -cwd
+#$ -o ugelogs/
+#$ -e ugelogs/
 
 import sys
 import os
@@ -100,9 +100,9 @@ def main():
         )
 
         sys.stderr.write("Command: {}\n".format(cmd2))
+        os.makedirs(task.output_dir, exist_ok=True)
 
         if not opt_runtime["--dry-run"]:
-            os.makedirs(task.output_dir, exist_ok=True)
             proc = subprocess.run(cmd2, shell=True, capture_output=True)
             utils.puts_captured_output(proc, task.output_dir)
 
