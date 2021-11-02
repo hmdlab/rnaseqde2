@@ -47,7 +47,7 @@ class Task(metaclass=ABCMeta):
         def _build_command():
             if not os.environ.get("SGE_TASK_ID", None):
                 cmd = "{script} {opt_script}".format(
-                    script=script, opt_script=opt_script
+                    script=script, opt_script=utils.optdict_to_str(opt_script)
                 )
                 return cmd
 
