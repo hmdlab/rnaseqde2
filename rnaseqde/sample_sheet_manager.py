@@ -50,7 +50,7 @@ class SampleSheetManager:
 
         read_files = self._ordered_fastqs()
         for file in read_files:
-            if not os.path.exists(file):
+            if not os.path.exists(os.path.expandvars(file)):
                 raise Exception("read file: {} does not exists.".format(file))
                 sys.exit(1)
 
