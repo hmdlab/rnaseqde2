@@ -42,3 +42,4 @@ Supported annotations:
     gencode_refeseq
 ```
 
+NOTE: Set the SGE_TASK_ID environment variable to 1 when using this pipeline in a non HPC environment. 
