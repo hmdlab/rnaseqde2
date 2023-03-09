@@ -16,6 +16,7 @@ Options:
     --step-by-step <TYPE> : Run with step (align/quant/de)
     --assets <PATH>       : Assets yml path
     --resume-from <TYPE>  : Resume workflow from (align/quant/de)
+    --ar <ID>             : Advanced Reservation ID (only specify when using UGE)
     --dry-run             : Dry-run [default: False]
     <sample_sheet>        : Tab-delimited text that contained the following columns:
                             sample; fastq1[fastq2]; group
@@ -41,7 +42,7 @@ Supported annotations:
 
 import sys
 
-from schema import Schema, Or, SchemaError
+from schema import Schema, Use, Or, SchemaError
 from docopt import docopt
 
 from rnaseqde.sample_sheet_manager import SampleSheetManager
@@ -100,6 +101,7 @@ def _opt_validated(opt):
             'quant',
             'de'
             ),
+        '--ar': Or(None, Use(int, error='AR ID should be an integer')),
         '--dry-run': bool,
         '<sample_sheet>': str
     })

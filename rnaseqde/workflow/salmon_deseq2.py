@@ -12,6 +12,7 @@ from rnaseqde.task.de_deseq2 import DeDeseq2Task
 
 def init_options(opt):
     Task.dry_run = opt['--dry-run']
+    Task.ar_id = opt['--ar']
 
     steps = {
         'align': [],

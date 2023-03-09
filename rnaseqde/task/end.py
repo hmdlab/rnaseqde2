@@ -22,7 +22,7 @@ class EndTask(Task):
     def run(self):
         self.submit_query(
             script=self.script,
-            opt_script=' '.join(self.inputs),
+            opt_script={'': self.inputs},
             log=True
             )
 

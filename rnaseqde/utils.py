@@ -114,7 +114,7 @@ def dictbind(dist: dict, src: dict, binding: dict):
     for k, v in binding.items():
         dist_[k] = src[v]
 
-    return(dist_)
+    return dist_
 
 
 def dictfilter(src: dict, include=None, exclude=None):
@@ -138,7 +138,7 @@ def dictfilter(src: dict, include=None, exclude=None):
             except NameError:
                 pass
 
-    return(dist_)
+    return dist_
 
 
 def dictupdate_if_exists(dist: Union[list, dict], src: dict):
